@@ -13,8 +13,8 @@ An implementation of the Stack data structure using C++ templates
 #include <vector>
 #include <exception>
 
-template <class T>
-class Stack
+template <typename T>
+class stack
 {
 	std::vector<T> data;
 public:
@@ -24,19 +24,19 @@ public:
 
 	bool is_empty() const;
 
-	Stack();
-	~Stack();
+	stack();
+	~stack();
 };
 
-template <class T>
-inline void Stack<T>::push(T const& elem)
+template <typename T>
+inline void stack<T>::push(T const& elem)
 {
 	this->data.push_back(elem);
 	return;
 }
 
-template <class T>
-inline T Stack<T>::pop()
+template <typename T>
+inline T stack<T>::pop()
 {
 	if (this->data.size() == 0)
 	{
@@ -49,8 +49,8 @@ inline T Stack<T>::pop()
 	}
 }
 
-template <class T>
-inline T Stack<T>::peek() const
+template <typename T>
+inline T stack<T>::peek() const
 {
 	if (this->data.size() == 0)
 	{
@@ -62,18 +62,18 @@ inline T Stack<T>::peek() const
 	}
 }
 
-template <class T>
-inline bool Stack<T>::is_empty() const
+template <typename T>
+inline bool stack<T>::is_empty() const
 {
 	return this->data.empty();
 }
 
-template <class T>
-inline Stack<T>::Stack()
+template <typename T>
+inline stack<T>::stack()
 {
 }
 
-template <class T>
-inline Stack<T>::~Stack()
+template <typename T>
+inline stack<T>::~stack()
 {
 }

@@ -2,7 +2,7 @@
 
 Algorithms and Data Structures
 Copyright 2019 Riley Lannon
-Node.h
+node.h
 
 A node class for a linked list
 
@@ -13,59 +13,59 @@ A node class for a linked list
 #include <exception>
 
 template<class T>
-class Node
+class node
 {
 	T data;
-	Node<T>* next;
+	node<T>* next;
 public:
 	T get_data() const;
-	Node<T>* get_next();
+	node<T>* get_next();
 
 	void set_data(T data);
-	void set_next(Node<T>* next);
+	void set_next(node<T>* next);
 
-	Node(T data, Node<T>* next = nullptr);
-	Node();
-	~Node();
+	node(T data, node<T>* next = nullptr);
+	node();
+	~node();
 };
 
-template <class T>
-inline void Node<T>::set_data(T data)
+template <typename T>
+inline void node<T>::set_data(T data)
 {
 	this->data = data;
 }
 
-template <class T>
-inline T Node<T>::get_data() const
+template <typename T>
+inline T node<T>::get_data() const
 {
 	return this->data;
 }
 
-template <class T>
-inline Node<T>* Node<T>::get_next()
+template <typename T>
+inline node<T>* node<T>::get_next()
 {
 	return this->next;
 }
 
-template <class T>
-inline void Node<T>::set_next(Node<T>* next)
+template <typename T>
+inline void node<T>::set_next(node<T>* next)
 {
 	this->next = next;
 }
 
-template <class T>
-Node<T>::Node(T data, Node<T>* next)
+template <typename T>
+node<T>::node(T data, node<T>* next)
 {
 	this->data = data;
 	this->next = next;
 }
 
-template <class T>
-Node<T>::Node()
+template <typename T>
+node<T>::node()
 {
 }
 
-template <class T>
-Node<T>::~Node()
+template <typename T>
+node<T>::~node()
 {
 }

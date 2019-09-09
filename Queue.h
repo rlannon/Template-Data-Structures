@@ -13,8 +13,8 @@ An implementation of the Queue data structures using C++ templates
 #include <vector>
 #include <exception>
 
-template <class T>
-class Queue
+template <typename T>
+class queue
 {
 	std::vector<T> data;
 public:
@@ -25,19 +25,19 @@ public:
 
 	bool is_empty() const;
 
-	Queue();
-	~Queue();
+	queue();
+	~queue();
 };
 
-template <class T>
-inline void Queue<T>::push(T const& elem)
+template <typename T>
+inline void queue<T>::push(T const& elem)
 {
 	this->data.push_back(elem);
 	return;
 }
 
-template <class T>
-inline T Queue<T>::peek() const
+template <typename T>
+inline T queue<T>::peek() const
 {
 	if (this->data.empty())
 	{
@@ -49,8 +49,8 @@ inline T Queue<T>::peek() const
 	}
 }
 
-template <class T>
-inline T Queue<T>::pop()
+template <typename T>
+inline T queue<T>::pop()
 {
 	if (this->data.empty())
 	{
@@ -64,16 +64,16 @@ inline T Queue<T>::pop()
 	}
 }
 
-template <class T>
-inline bool Queue<T>::is_empty() const
+template <typename T>
+inline bool queue<T>::is_empty() const
 {
 	return this->data.empty();
 }
 
-template<class T> Queue<T>::Queue()
+template<class T> queue<T>::queue()
 {
 }
 
-template<class T> Queue<T>::~Queue()
+template<class T> queue<T>::~queue()
 {
 }

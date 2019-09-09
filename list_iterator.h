@@ -10,29 +10,29 @@ The iterator class for our linked list, inheriting from MyIterator
 
 #pragma once
 
-#include "Iterator.h"
+#include "iterator.h"
 
-template <class T>
+template <typename T>
 class list_iterator : public forward_iterator<T>
 {
-	Node<T>* ptr;
+	node<T>* ptr;
 public:
 	list_iterator<T>& operator++();
 	list_iterator<T>& operator++(T);
 	T operator*();
 	bool operator==(const list_iterator<T> right);
 	bool operator!=(const list_iterator<T> right);
-	bool operator==(const Node<T> right);
-	bool operator!=(Node<T> right);
+	bool operator==(const node<T> right);
+	bool operator!=(node<T> right);
 
-	Node<T>* get_ptr();
+	node<T>* get_ptr();
 
-	list_iterator(Node<T>* ptr);
+	list_iterator(node<T>* ptr);
 	list_iterator();
 	~list_iterator();
 };
 
-template <class T>
+template <typename T>
 list_iterator<T>& list_iterator<T>::operator++()
 {
 	if (this->ptr == nullptr)
@@ -45,7 +45,7 @@ list_iterator<T>& list_iterator<T>::operator++()
 	}
 }
 
-template <class T>
+template <typename T>
 list_iterator<T>& list_iterator<T>::operator++(T)
 {
 	if (this->ptr == nullptr)
@@ -58,7 +58,7 @@ list_iterator<T>& list_iterator<T>::operator++(T)
 	}
 }
 
-template <class T>
+template <typename T>
 T list_iterator<T>::operator*()
 {
 	if (this->ptr == nullptr)
@@ -70,49 +70,49 @@ T list_iterator<T>::operator*()
 	}
 }
 
-template <class T>
+template <typename T>
 bool list_iterator<T>::operator==(const list_iterator<T> right)
 {
 	return this->ptr == right.ptr;
 }
 
-template <class T>
+template <typename T>
 bool list_iterator<T>::operator!=(const list_iterator<T> right)
 {
 	return this->ptr != right.ptr;
 }
 
-template <class T>
-bool list_iterator<T>::operator==(const Node<T> right)
+template <typename T>
+bool list_iterator<T>::operator==(const node<T> right)
 {
 	return (this->ptr->get_data() == right.get_data()) && (this->ptr->get_next() == right.get_next());
 }
 
-template <class T>
-bool list_iterator<T>::operator!=(Node<T> right)
+template <typename T>
+bool list_iterator<T>::operator!=(node<T> right)
 {
 	return !(this->ptr->get_data() == right.get_data()) && (this->ptr->get_next() == right.get_next());
 }
 
-template <class T>
-Node<T>* list_iterator<T>::get_ptr()
+template <typename T>
+node<T>* list_iterator<T>::get_ptr()
 {
 	return this->ptr;
 }
 
-template <class T>
-list_iterator<T>::list_iterator(Node<T>* ptr)
+template <typename T>
+list_iterator<T>::list_iterator(node<T>* ptr)
 {
 	this->ptr = ptr;
 }
 
-template <class T>
+template <typename T>
 list_iterator<T>::list_iterator()
 {
 
 }
 
-template <class T>
+template <typename T>
 list_iterator<T>::~list_iterator()
 {
 

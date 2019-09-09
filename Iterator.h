@@ -10,7 +10,7 @@ An implementation of a basic forward-iterator class
 
 #pragma once
 
-template <class T>
+template <typename T>
 class forward_iterator
 {
 	T* ptr;
@@ -26,51 +26,51 @@ public:
 	virtual ~forward_iterator();
 };
 
-template <class T>
+template <typename T>
 forward_iterator<T>& forward_iterator<T>::operator++()
 {
 	ptr++;
 	return *this;
 }
 
-template <class T>
+template <typename T>
 forward_iterator<T>& forward_iterator<T>::operator++(T)
 {
 	ptr++;
 	return *this;
 }
 
-template <class T>
+template <typename T>
 T forward_iterator<T>::operator*()
 {
 	return *this->ptr;
 }
 
-template <class T>
+template <typename T>
 bool forward_iterator<T>::operator==(const forward_iterator<T> right)
 {
 	return this->ptr == right.ptr;
 }
 
-template <class T>
+template <typename T>
 bool forward_iterator<T>::operator!=(const forward_iterator<T> right)
 {
 	return this->ptr != right.ptr;
 }
 
-template <class T>
+template <typename T>
 forward_iterator<T>::forward_iterator(T* ptr)
 {
 	this->ptr = ptr;
 }
 
-template <class T>
+template <typename T>
 forward_iterator<T>::forward_iterator()
 {
 	this->ptr = nullptr;
 }
 
-template <class T>
+template <typename T>
 forward_iterator<T>::~forward_iterator()
 {
 

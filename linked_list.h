@@ -12,18 +12,18 @@ An implementation of a singly-linked-list using C++ templates
 
 #include <exception>
 #include <iostream>
-#include "Node.h"
-#include "ListIterator.h"
+#include "node.h"
+#include "list_iterator.h"
 
-template <class T>
-class LinkedList
+template <typename T>
+class linked_list
 {
-	Node<T>* head;
-	Node<T>* tail;
+	node<T>* head;
+	node<T>* tail;
 
 	size_t length;
 
-	void append(Node<T> node);
+	void append(node<T> to_append);
 public:
 	typedef list_iterator<T> iterator;
 
@@ -38,7 +38,7 @@ public:
 	void insert(T val, list_iterator<T> pos);	// insert value at a given iterator position
 	
 	// find a particular value in the list
-	Node<T>* search(T to_find) const;
+	node<T>* search(T to_find) const;
 
 	// erase a value from the list
 	void erase(T val);
@@ -46,32 +46,32 @@ public:
 	// get the length
 	size_t get_length() const;
 
-	LinkedList();
-	~LinkedList();
+	linked_list();
+	~linked_list();
 };
 
-template <class T>
-list_iterator<T> LinkedList<T>::begin() const
+template <typename T>
+list_iterator<T> linked_list<T>::begin() const
 {
 	return list_iterator<T>(this->head);
 }
 
-template <class T>
-list_iterator<T> LinkedList<T>::back() const
+template <typename T>
+list_iterator<T> linked_list<T>::back() const
 {
 	return list_iterator<T>(this->tail);
 }
 
-template <class T>
-list_iterator<T> LinkedList<T>::end() const
+template <typename T>
+list_iterator<T> linked_list<T>::end() const
 {
 	return list_iterator<T>(nullptr);
 }
 
 template<class T>
-inline void LinkedList<T>::append(Node<T> node)
+inline void linked_list<T>::append(node<T> to_append)
 {
-	Node<T>* temp = new Node<T>(node);	// allocate the new node
+	node<T>* temp = new node<T>(to_append);	// allocate the new node
 
 	// if we don't have anything in the list, set "head" to point to the node
 	if (this->head == nullptr)
@@ -89,13 +89,13 @@ inline void LinkedList<T>::append(Node<T> node)
 }
 
 template<class T>
-inline void LinkedList<T>::append(T val)
+inline void linked_list<T>::append(T val)
 {
-	this->append(Node<T>(val));		// just use our other append function by creating a node from the value
+	this->append(node<T>(val));		// just use our other append function by creating a node from the value
 }
 
 template<class T>
-inline void LinkedList<T>::insert(T val, size_t pos)
+inline void linked_list<T>::insert(T val, size_t pos)
 {
 	/*
 	
@@ -109,8 +109,8 @@ inline void LinkedList<T>::insert(T val, size_t pos)
 	*/
 	
 	size_t current_pos = 0;
-	Node<T>* previous_node = this->head;
-	Node<T>* current_node = this->head;
+	node<T>* previous_node = this->head;
+	node<T>* current_node = this->head;
 
 	while (current_node != nullptr && current_pos < pos)
 	{
@@ -127,7 +127,7 @@ inline void LinkedList<T>::insert(T val, size_t pos)
 	// else, if we are within the list
 	else
 	{
-		Node<T>* new_node = new Node<T>(val);
+		node<T>* new_node = new node<T>(val);
 
 		// if we are inserting at position 0, we need to update LinkedList<T>::head
 		if (current_pos == 0)
@@ -144,7 +144,7 @@ inline void LinkedList<T>::insert(T val, size_t pos)
 }
 
 template<class T>
-inline void LinkedList<T>::insert(T val, list_iterator<T> pos)
+inline void linked_list<T>::insert(T val, list_iterator<T> pos)
 {
 	list_iterator<T> current_pos = this->begin();
 	list_iterator<T> previous_pos = this->begin();
@@ -169,8 +169,8 @@ inline void LinkedList<T>::insert(T val, list_iterator<T> pos)
 		// safety check
 		if (current_pos != this->end())
 		{
-			Node<T>* new_node = new Node<T>(val);
-			Node<T>* previous_node = previous_pos.get_ptr();
+			node<T>* new_node = new node<T>(val);
+			node<T>* previous_node = previous_pos.get_ptr();
 
 			// current_pos is where we want new_node to go; set prev -> new -> cur
 			previous_node->set_next(new_node);
@@ -184,12 +184,12 @@ inline void LinkedList<T>::insert(T val, list_iterator<T> pos)
 	}
 }
 
-template <class T>
-inline Node<T>* LinkedList<T>::search(T to_find) const
+template <typename T>
+inline node<T>* linked_list<T>::search(T to_find) const
 {
 	// Finds a node in the list by value. Returns the first one.
 
-	LinkedList<T>::iterator it = this->begin();
+	linked_list<T>::iterator it = this->begin();
 	while (it != this->end() && *it != to_find)
 	{
 		it++;
@@ -199,12 +199,12 @@ inline Node<T>* LinkedList<T>::search(T to_find) const
 	return it.get_ptr();
 }
 
-template <class T>
-inline void LinkedList<T>::erase(T val)
+template <typename T>
+inline void linked_list<T>::erase(T val)
 {
 	// Erase a value from the list; if the value is not found, throws an exception
-	LinkedList<T>::iterator to_delete = this->begin();
-	Node<T>* prev = to_delete.get_ptr();
+	linked_list<T>::iterator to_delete = this->begin();
+	node<T>* prev = to_delete.get_ptr();
 	bool done = false;
 
 	while (to_delete != this->end() && !done)
@@ -227,7 +227,7 @@ inline void LinkedList<T>::erase(T val)
 	}
 	else
 	{
-		// prev should now point to the Node that comes after to_delete
+		// prev should now point to the node that comes after to_delete
 		prev->set_next(to_delete.get_ptr()->get_next());
 
 		// delete the node
@@ -238,14 +238,14 @@ inline void LinkedList<T>::erase(T val)
 	}
 }
 
-template <class T>
-inline size_t LinkedList<T>::get_length() const
+template <typename T>
+inline size_t linked_list<T>::get_length() const
 {
 	return this->length;
 }
 
-template <class T>
-inline LinkedList<T>::LinkedList()
+template <typename T>
+inline linked_list<T>::linked_list()
 {
 	this->head = nullptr;
 	this->tail = nullptr;
@@ -253,17 +253,17 @@ inline LinkedList<T>::LinkedList()
 }
 
 template<class T>
-inline LinkedList<T>::~LinkedList()
+inline linked_list<T>::~linked_list()
 {
 	if (this->length > 0) {
 		// if our head isn't a nullptr, we have to iterate through the list and delete all of our nodes to avoid a memory leak
 		if (this->head != nullptr)
 		{
-			Node<T>* current = this->head;
+			node<T>* current = this->head;
 			while (current)
 			{
 				// update the current node to the next node in the list
-				Node<T>* temp = current;
+				node<T>* temp = current;
 				current = current->get_next();
 
 				// delete the dynamic object and set the pointer to 0x00
