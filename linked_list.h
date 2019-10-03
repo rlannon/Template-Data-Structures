@@ -14,6 +14,7 @@ The list also includes a forward iterator. std::iterator_traits are defined for 
 #include <exception>
 #include <iostream>
 #include <iterator>
+#include <cstddef>	// for ptrdiff_t
 
 #include "node.h"
 
@@ -27,6 +28,8 @@ class linked_list
 
 	void append(node<T> to_append);
 public:
+	typedef T value_type;
+
 	// define the iterator for the linked list
 	class iterator
 	{

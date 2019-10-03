@@ -105,5 +105,5 @@ typename Container::iterator binary_search(Container &target, typename Container
 	
 	*/
 	
-	return binary_search(target, to_find, std::iterator_traits<typename Container::iterator>::iterator_category());
+	return binary_search(target, to_find, typename std::iterator_traits<typename Container::iterator>::iterator_category());
 }
