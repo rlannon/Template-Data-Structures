@@ -12,7 +12,6 @@ An implementation of the Stack data structures using C++ templates and STL Alloc
 
 #include <memory>
 #include <stdexcept>
-#include <cstring>	// for memcpy
 
 template <typename T, typename Allocator = std::allocator<T>>
 class stack
@@ -94,7 +93,7 @@ void stack<T, Allocator>::push_back(T to_push)
 
 		if (this->buffer)
 		{
-			std::memcpy(this->buffer, old_buff_ptr, this->_size * sizeof(T));
+			memcpy(this->buffer, old_buff_ptr, this->_size * sizeof(T));
 			this->stack_allocator.deallocate(old_buff_ptr, this->_size);
 
 			this->_capacity = new_capacity;

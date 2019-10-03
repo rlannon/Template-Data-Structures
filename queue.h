@@ -12,7 +12,6 @@ An implementation of the Queue data structures using C++ templates and STL Alloc
 
 #include <memory>
 #include <stdexcept>
-#include <cstring>	// for memcpy
 
 template <typename T, typename Allocator = std::allocator<T>>
 class queue
@@ -82,7 +81,7 @@ inline void queue<T, Allocator>::push_back(T to_push)
 
 		if (this->buffer)
 		{
-			std::memcpy(buffer, old_buf, this->_size * sizeof(T));
+			memcpy(buffer, old_buf, this->_size * sizeof(T));
 			this->queue_allocator.deallocate(old_buf, this->_size);
 
 			this->_capacity = new_capacity;

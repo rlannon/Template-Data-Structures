@@ -12,8 +12,9 @@ An implementation of a singly-linked-list using C++ templates
 
 #include <exception>
 #include <iostream>
+#include <iterator>
+
 #include "node.h"
-#include "list_iterator.h"
 
 template <typename T>
 class linked_list
@@ -25,17 +26,38 @@ class linked_list
 
 	void append(node<T> to_append);
 public:
-	typedef list_iterator<T> iterator;
+	// define the iterator for the linked list
+	class iterator
+	{
+		node<T>* ptr;
+	public:
+		// define _all_ of std::iterator_traits struct members or it won't work
+		typedef T value_type;
+		typedef std::forward_iterator_tag iterator_category;
+		typedef ptrdiff_t difference_type;
+		typedef T* pointer;
+		typedef T& reference;
+
+		bool operator==(const iterator right);
+		bool operator!=(const iterator right);
+		T operator*();
+		iterator& operator++();
+		iterator& operator++(T);
+
+		iterator(node<T>* ptr);
+		iterator();
+		~iterator();
+	};
 
 	// iterators
-	list_iterator<T> begin() const;
-	list_iterator<T> back() const;
-	list_iterator<T> end() const;
+	iterator begin() const;
+	iterator back() const;
+	iterator end() const;
 
 	// add a value to the list
 	void append(T val);
 	void insert(T val, size_t pos);	// insert a value at a given index position
-	void insert(T val, list_iterator<T> pos);	// insert value at a given iterator position
+	void insert(T val, iterator pos);	// insert value at a given iterator position
 	
 	// find a particular value in the list
 	node<T>* search(T to_find) const;
@@ -51,21 +73,21 @@ public:
 };
 
 template <typename T>
-list_iterator<T> linked_list<T>::begin() const
+typename linked_list<T>::iterator linked_list<T>::begin() const
 {
-	return list_iterator<T>(this->head);
+	return iterator(this->head);
 }
 
 template <typename T>
-list_iterator<T> linked_list<T>::back() const
+typename linked_list<T>::iterator linked_list<T>::back() const
 {
-	return list_iterator<T>(this->tail);
+	return iterator(this->tail);
 }
 
 template <typename T>
-list_iterator<T> linked_list<T>::end() const
+typename linked_list<T>::iterator linked_list<T>::end() const
 {
-	return list_iterator<T>(nullptr);
+	return iterator(nullptr);
 }
 
 template<class T>
@@ -144,10 +166,10 @@ inline void linked_list<T>::insert(T val, size_t pos)
 }
 
 template<class T>
-inline void linked_list<T>::insert(T val, list_iterator<T> pos)
+inline void linked_list<T>::insert(T val, iterator pos)
 {
-	list_iterator<T> current_pos = this->begin();
-	list_iterator<T> previous_pos = this->begin();
+	iterator current_pos = this->begin();
+	iterator previous_pos = this->begin();
 
 	// if the iterator is at begin() or end(), it is an easy operation
 	if (pos == this->begin())
@@ -271,13 +293,97 @@ inline linked_list<T>::~linked_list()
 				temp = nullptr;
 			}
 		}
-		// otherwise, we have a serious error
-		else
-		{
-			throw std::runtime_error("Expected list elements but found a head value of nullptr");
-		}
 	}
 	// if the length is > 0, we are done
 }
 
+/*
 
+iterator functions
+
+*/
+
+template <typename T>
+bool linked_list<T>::iterator::operator==(const linked_list<T>::iterator right)
+{
+	return this->ptr == right.ptr;
+}
+
+template <typename T>
+bool linked_list<T>::iterator::operator!=(const linked_list<T>::iterator right)
+{
+	return this->ptr != right.ptr;
+}
+
+template <typename T>
+T linked_list<T>::iterator::operator*()
+{
+	return this->ptr->get_data();
+}
+
+template <typename T>
+typename linked_list<T>::iterator& linked_list<T>::iterator::operator++()
+{
+	/*
+	
+	Prefix operator (++iterator)
+	This will increment the value at the iterator and then return it
+	
+	*/
+
+	if (this->ptr)
+	{
+		this->ptr = this->ptr->get_next();
+		return *this;
+	}
+	else
+	{
+		throw std::out_of_range("Cannot advance iterator");
+	}
+}
+
+template <typename T>
+typename linked_list<T>::iterator& linked_list<T>::iterator::operator++(T)
+{
+	/*
+	
+	Postfix operator (e.g., iterator++)
+	This will fetch the value at the iterator _before_ incrementing it and return the old value
+	
+	*/
+	
+	if (this->ptr)
+	{
+		iterator to_return(*this);
+		this->ptr = this->ptr->get_next();
+		return to_return;
+	}
+	else
+	{
+		throw std::out_of_range("Cannot advance iterator");
+	}
+}
+
+template <typename T>
+linked_list<T>::iterator::iterator(node<T>* ptr)
+{
+	this->ptr = ptr;
+}
+
+template <typename T>
+linked_list<T>::iterator::iterator()
+{
+	this->ptr = nullptr;
+}
+
+template <typename T>
+linked_list<T>::iterator::~iterator()
+{
+
+}
+
+/*
+
+Define the iterator traits for linked_list<T>::iterator
+
+*/
