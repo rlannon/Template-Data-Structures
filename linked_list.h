@@ -5,6 +5,7 @@ Copyright 2019 Riley Lannon
 LinkedList.h
 
 An implementation of a singly-linked-list using C++ templates
+The list also includes a forward iterator. std::iterator_traits are defined for this iterator using typedefs
 
 */
 
@@ -379,11 +380,5 @@ linked_list<T>::iterator::iterator()
 template <typename T>
 linked_list<T>::iterator::~iterator()
 {
-
+	
 }
-
-/*
-
-Define the iterator traits for linked_list<T>::iterator
-
-*/

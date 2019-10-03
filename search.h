@@ -66,7 +66,7 @@ binary_search(Container &target, typename Container::value_type const& to_find, 
 	typename Container::iterator m = l + midway;
 	midway /= 2;
 	
-	while ((l <= r) && (m != target.end()))
+	while ((l < r) && (m != target.end()))
 	{
 		if (*m == to_find)
 		{
@@ -85,7 +85,13 @@ binary_search(Container &target, typename Container::value_type const& to_find, 
 		midway /= 2;
 	}
 
-	return target.end();
+	if ((l == r) && (m != target.end()))
+	{
+		return (*m == to_find) ? m : target.end();
+	}
+	else {
+		return target.end();
+	}
 }
 
 template <typename Container>
@@ -95,6 +101,7 @@ typename Container::iterator binary_search(Container &target, typename Container
 	
 	binary_search()
 	Ensures that the container passed to the function is a random-access iterator
+	If not, we get a compile-time error
 	
 	*/
 	
