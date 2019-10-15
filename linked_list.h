@@ -28,7 +28,7 @@ class linked_list
 
 	void append(node<T> to_append);
 public:
-	typedef T value_type;
+	typedef T value_type;	// must define a value type for the container
 
 	// define the iterator for the linked list
 	class iterator
