@@ -22,7 +22,7 @@ Further, each algorithm operates on vectors, and all use void functions that pas
 using std::vector;
 
 template <typename T>
-void bubble_sort(vector<T>& to_sort)
+void bubble_sort(vector<T> &to_sort)
 {
 	/*
 	
@@ -54,7 +54,7 @@ void bubble_sort(vector<T>& to_sort)
 }
 
 template <typename T>
-void selection_sort(vector<T>& to_sort)
+void selection_sort(vector<T> &to_sort)
 {
 	/*
 	
@@ -92,7 +92,7 @@ void selection_sort(vector<T>& to_sort)
 }
 
 template <typename T>
-void insertion_sort(vector<T>& to_sort)
+void insertion_sort(vector<T> &to_sort)
 {
 	/*
 	
@@ -103,25 +103,104 @@ void insertion_sort(vector<T>& to_sort)
 	// begin at i = 1; first entry is skipped
 	for (size_t i = 1; i < to_sort.size(); i++)
 	{
-		// iterate through the previous
-		size_t j = 0;
-		while ((j < i) && (to_sort[j] < to_sort[i]))
+		// iterate through the previous to find a smaller index than to_sort[i]
+		size_t smallest = 0;
+		while ((smallest < i) && (to_sort[smallest] < to_sort[i]))
 		{
-			j++;
+			smallest++;
 		}
 
-		// delete the element at position i from the vector, then insert it at position j
-		// since j < i, this won't cause any issues
-		T temp = to_sort[i];
-		to_sort.erase(to_sort.begin() + i);
-		to_sort.insert(to_sort.begin() + j, temp);
+		// if smallest < i, then we need to perform an insertion -- do nothing if smallest == i
+		if (smallest < i)
+		{
+			// delete the element at position i from the vector, then insert it at position 'smallest'
+			// since 'smallest' < i, this won't cause any issues
+			T temp = to_sort[i];
+			to_sort.erase(to_sort.begin() + i);
+			to_sort.insert(to_sort.begin() + smallest, temp);
+		}
+		else {
+			// otherwise, do nothing
+		}
 	}
 
 	return;
 }
 
 template <typename T>
-void merge_sort(vector<T>& to_sort)
+void double_ended_insertion_sort(std::vector<T> &to_sort)
+{
+	/*
+
+	Performs an insertion sort, comparing from each end and narrowing the search every time.
+	Testing reveals this takes about twice as long as a regular insertion sort for vectors of randomly-generated integers.
+	
+	*/
+
+	// go after the list from both ends
+	size_t upper_bound = to_sort.size() - 1;
+	size_t lower_bound = 0;
+
+	// as long as there is a difference of more than one between the two indices, continue going
+	while ((upper_bound - lower_bound) > 1)
+	{
+		size_t largest_index = lower_bound, smallest_index = lower_bound;
+		
+		// get the actual indices of highest and lowest values in the current range
+		for (size_t i = lower_bound; i <= upper_bound; i++)
+		{
+			// if the current index is greater than the current largest number, update the index
+			if (to_sort[i] > to_sort[largest_index])
+			{
+				largest_index = i;
+			}
+			else if (to_sort[i] < to_sort[smallest_index])
+			{
+				smallest_index = i;
+			}
+		}
+
+		// now that we have the indices, make insertions accordingly
+
+		// get the smallest and largest values as temp values (because performing swaps will mess up indices that aren't on the extremes)
+		T smallest = to_sort[smallest_index];
+		T largest = to_sort[largest_index];
+
+		// now, if the largest index is less than the smallest index, we need to add one to largest_index because it will be moved by the first swap
+		largest_index += (largest_index < smallest_index) ? 1 : 0;
+
+		// only make swaps if the elements aren't already in position
+		if (smallest_index > lower_bound)
+		{
+			// insert the value lowest_index at lower_bound
+			to_sort.erase(to_sort.begin() + smallest_index);
+			to_sort.insert(to_sort.begin() + lower_bound, smallest);
+		}
+
+		// do the same for the larger value
+		if (largest_index < upper_bound)
+		{
+			// insert the value at highest_index at upper_bound
+			to_sort.erase(to_sort.begin() + largest_index);
+			to_sort.insert(to_sort.begin() + upper_bound, largest);
+		}
+
+		// finally, adjust the bounds
+		lower_bound += 1;
+		upper_bound -= 1;
+	}
+
+	// finally, if the two are right next to each other, see if we need to perform a swap
+	if (to_sort[lower_bound] > to_sort[upper_bound])
+	{
+		T temp = to_sort[upper_bound];
+		to_sort[upper_bound] = to_sort[lower_bound];
+		to_sort[lower_bound] = temp;
+	}
+}
+
+template <typename T>
+void merge_sort(vector<T> &to_sort)
 {
 	/*
 	
