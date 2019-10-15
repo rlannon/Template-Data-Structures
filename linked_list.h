@@ -358,7 +358,7 @@ typename linked_list<T>::iterator& linked_list<T>::iterator::operator++(T)
 	
 	if (this->ptr)
 	{
-		iterator to_return(*this);
+		iterator &to_return(*this);
 		this->ptr = this->ptr->get_next();
 		return to_return;
 	}
