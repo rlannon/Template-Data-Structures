@@ -18,7 +18,7 @@ class node
 	T data;
 	node<T>* next;
 public:
-	T get_data() const;
+	T& get_data();
 	node<T>* get_next();
 
 	void set_data(T data);
@@ -36,7 +36,7 @@ inline void node<T>::set_data(T data)
 }
 
 template <typename T>
-inline T node<T>::get_data() const
+inline T& node<T>::get_data()
 {
 	return this->data;
 }

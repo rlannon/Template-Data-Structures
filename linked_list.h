@@ -36,17 +36,18 @@ public:
 		node<T>* ptr;
 	public:
 		// define _all_ of std::iterator_traits struct members or it won't work
-		typedef T value_type;
+		typedef node<T> value_type;
 		typedef std::forward_iterator_tag iterator_category;
 		typedef ptrdiff_t difference_type;
-		typedef T* pointer;
-		typedef T& reference;
+		typedef node<T>* pointer;
+		typedef node<T>& reference;
 
 		bool operator==(const iterator right);
 		bool operator!=(const iterator right);
-		T operator*();
+		node<T>& operator*();
+		node<T>* operator->() const;
 		iterator& operator++();
-		iterator& operator++(T);
+		iterator operator++(int);
 
 		iterator(node<T>* ptr);
 		iterator();
@@ -320,9 +321,15 @@ bool linked_list<T>::iterator::operator!=(const linked_list<T>::iterator right)
 }
 
 template <typename T>
-T linked_list<T>::iterator::operator*()
+node<T>& linked_list<T>::iterator::operator*()
 {
-	return this->ptr->get_data();
+	return *this->ptr;
+}
+
+template <typename T>
+node<T>* linked_list<T>::iterator::operator->() const
+{
+	return this->ptr;
 }
 
 template <typename T>
@@ -347,7 +354,7 @@ typename linked_list<T>::iterator& linked_list<T>::iterator::operator++()
 }
 
 template <typename T>
-typename linked_list<T>::iterator& linked_list<T>::iterator::operator++(T)
+typename linked_list<T>::iterator linked_list<T>::iterator::operator++(int)
 {
 	/*
 	
