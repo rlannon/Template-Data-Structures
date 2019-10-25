@@ -85,6 +85,7 @@ public:
 	size_t capacity() const;
 	bool empty() const;
 
+	mapped_type& at(const key_type& key);
 	entry& insert(K key, V value);
 	iterator find(K to_find);
 
@@ -244,18 +245,63 @@ bool hash_table<K, V, Hash, Allocator>::empty() const
 // Accesses
 
 template<typename K, typename V, typename Hash, typename Allocator>
+typename hash_table<K, V, Hash, Allocator>::mapped_type& hash_table<K, V, Hash, Allocator>::at(const hash_table<K, V, Hash, Allocator>::key_type& key)
+{
+	// returns a reference to the mapped type if the key is found; if it is not found, throws an out_of_range exception
+	iterator it = this->find(key);
+	if (it == this->end())
+	{
+		throw std::out_of_range("Could not find the specified key in the hash table");
+	}
+	else
+	{
+		entry& found = it->get_data();
+		return found.data;
+	}
+}
+
+template<typename K, typename V, typename Hash, typename Allocator>
 typename hash_table<K, V, Hash, Allocator>::entry& hash_table<K, V, Hash, Allocator>::insert(K key, V value)
 {
+	// adds the specified key-value pair to the table
+
 	// the index is the hash value modulo the capacity of the table
 	size_t index = this->hash_function(key) % this->_capacity;
 
-	// append this to the linked list at that index
-	this->buckets[index].append(entry(key, value));
-	this->_size += 1;	// we have one more entry in the table
+	// check to see if this key appears in the list
+	typename linked_list<entry>::iterator it = this->buckets[index].begin();
+	bool found = false;
+	while (it != this->buckets[index].end() && !found)
+	{
+		if (it->get_data().key == key)
+		{
+			found = true;
+		}
+		else
+		{
+			it++;
+		}
+	}
 
-	// return a reference to the new entry
-	node<entry>& to_return = *this->buckets[index].back();
-	return to_return.get_data();
+	if (found)
+	{
+		// todo: find better exception for duplicate key
+		throw std::runtime_error("Duplicate key");
+
+		// return the value at the duplicate key on exception
+		node<entry>& to_return = *it;
+		return to_return.get_data();
+	}
+	else
+	{
+		// append this to the linked list at that index
+		this->buckets[index].append(entry(key, value));
+		this->_size += 1;	// we have one more entry in the table
+
+		// return a reference to the new entry
+		node<entry>& to_return = *this->buckets[index].back();
+		return to_return.get_data();
+	}
 }
 
 template <typename K, typename V, typename Hash, typename Allocator>
