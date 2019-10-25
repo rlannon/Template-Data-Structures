@@ -28,7 +28,7 @@ class linked_list
 
 	void append(node<T> to_append);
 public:
-	typedef T value_type;
+	typedef T value_type;	// must define a value type for the container
 
 	// define the iterator for the linked list
 	class iterator
@@ -365,7 +365,7 @@ typename linked_list<T>::iterator linked_list<T>::iterator::operator++(int)
 	
 	if (this->ptr)
 	{
-		iterator to_return(*this);
+		iterator &to_return(*this);
 		this->ptr = this->ptr->get_next();
 		return to_return;
 	}
