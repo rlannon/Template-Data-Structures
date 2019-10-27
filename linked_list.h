@@ -14,6 +14,7 @@ The list also includes a forward iterator. std::iterator_traits are defined for 
 #include <exception>
 #include <iostream>
 #include <iterator>
+#include <initializer_list>
 #include <cstddef>	// for ptrdiff_t
 
 #include "node.h"
@@ -28,7 +29,7 @@ class linked_list
 
 	void append(node<T> to_append);
 public:
-	typedef T value_type;	// must define a value type for the container
+	typedef T value_type;
 
 	// define the iterator for the linked list
 	class iterator
@@ -73,6 +74,7 @@ public:
 	// get the length
 	size_t get_length() const;
 
+	linked_list(std::initializer_list<T> il);
 	linked_list();
 	~linked_list();
 };
@@ -271,9 +273,39 @@ inline size_t linked_list<T>::get_length() const
 	return this->length;
 }
 
+template<typename T>
+inline linked_list<T>::linked_list(std::initializer_list<T> il)
+{
+	// allow linked lists to be initialized with std::initializer_list<T>
+
+	if (il.size() > 0)
+	{
+		this->length = il.size();
+		typename std::initializer_list<T>::iterator it = il.begin();
+		this->head = new node<T>(*it);
+		node<T>* current = this->head;
+		it++;
+
+		for (; it != il.end(); it++)
+		{
+			node<T>* next = new node<T>(*it);
+			current->set_next(next);
+			current = next;
+		}
+
+		this->tail = current;
+	}
+	else
+	{
+		linked_list();
+	}
+}
+
 template <typename T>
 inline linked_list<T>::linked_list()
 {
+	// initialize an empty linked list
+
 	this->head = nullptr;
 	this->tail = nullptr;
 	this->length = 0;
@@ -365,7 +397,7 @@ typename linked_list<T>::iterator linked_list<T>::iterator::operator++(int)
 	
 	if (this->ptr)
 	{
-		iterator &to_return(*this);
+		iterator to_return(*this);
 		this->ptr = this->ptr->get_next();
 		return to_return;
 	}
