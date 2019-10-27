@@ -71,8 +71,8 @@ public:
 	// erase a value from the list
 	void erase(T val);
 
-	// get the length
-	size_t get_length() const;
+	// get the number of elements in the vector
+	size_t size() const;
 
 	linked_list(std::initializer_list<T> il);
 	linked_list();
@@ -268,7 +268,7 @@ inline void linked_list<T>::erase(T val)
 }
 
 template <typename T>
-inline size_t linked_list<T>::get_length() const
+inline size_t linked_list<T>::size() const
 {
 	return this->length;
 }

@@ -10,6 +10,7 @@ An implementation of the Queue data structures using C++ templates and STL Alloc
 
 #pragma once
 
+#include <initializer_list>
 #include <memory>
 #include <stdexcept>
 
@@ -31,6 +32,7 @@ public:
 	T peek_front();
 	T pop_front();
 
+	explicit queue(std::initializer_list<T> il);
 	explicit queue();
 	~queue();
 };
@@ -138,6 +140,38 @@ inline T queue<T, Allocator>::pop_front()
 	}
 
 	return to_return;
+}
+
+/*
+
+Constructors and Destructor
+
+*/
+
+template <typename T, typename Allocator>
+inline queue<T, Allocator>::queue(std::initializer_list<T> il)
+{
+	/*
+
+	Allow queues to be initialized with initializer-lists
+	Note that elements are pushed _in order_ from left to right
+
+	*/
+
+	// construct our allocator
+	this->queue_allocator = Allocator();
+	
+	// allocate space for our queue
+	this->_capacity = ((il.size() * 1.5) < 4) ? (il.size() * 2) : (il.size() * 1.5);
+	this->buffer = this->queue_allocator.allocate(this->_capacity);
+	this->_size = 0;
+
+	// push every element in the list
+	for (T elem: il)
+	{
+		std::allocator_traits<Allocator>::construct(this->queue_allocator, &this->buffer[this->_size], elem);
+		this->_size += 1;
+	}
 }
 
 template<typename T, typename Allocator>

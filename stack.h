@@ -10,6 +10,7 @@ An implementation of the Stack data structures using C++ templates and STL Alloc
 
 #pragma once
 
+#include <initializer_list>
 #include <memory>
 #include <stdexcept>
 
@@ -31,6 +32,7 @@ public:
 	size_t size() const;
 	bool empty() const;
 
+	explicit stack(std::initializer_list<T> il);
 	explicit stack();
 	~stack();
 };
@@ -76,13 +78,15 @@ void stack<T, Allocator>::push_back(T to_push)
 {
 	if (this->_capacity == 0)
 	{
-		this->buffer = this->stack_allocator.allocate(1);
-		this->_capacity = 1;
+		// if we have nothing on the stack, allocate space for four elements
+		this->buffer = this->stack_allocator.allocate(4);
+		this->_capacity = 4;
 	}
 	else if (this->_size == this->_capacity)
 	{
 		size_t new_capacity = this->_capacity * 1.5;
 
+		// if the capacity is less than 4, multiply it by two because of rounding
 		if (new_capacity < 4)
 		{
 			new_capacity *= 2;
@@ -149,6 +153,32 @@ T stack<T, Allocator>::peek()
 Constructor and destructor
 
 */
+
+template <typename T, typename Allocator>
+stack<T, Allocator>::stack(std::initializer_list<T> il)
+{
+	/*
+	
+	Allow our stack to be initialized with an initializer-list
+	The list will push the elements _in order_ from left to right, so the left-most element will be pushed first
+
+	*/
+
+	// set up the allocator
+	this->stack_allocator = Allocator();
+
+	// allocate space for the initialized values
+	this->_capacity = ((il.size() * 1.5) < 4) ? (il.size() * 2) : (il.size() * 1.5);
+	this->buffer = this->stack_allocator.allocate(this->_capacity);
+	this->_size = 0;
+
+	// now, for every element in il, push to the buffer
+	for (T elem: il)
+	{
+		std::allocator_traits<Allocator>::construct(this->stack_allocator, &this->buffer[this->_size], elem);
+		this->_size += 1;
+	}
+}
 
 template <typename T, typename Allocator>
 stack<T, Allocator>::stack()
