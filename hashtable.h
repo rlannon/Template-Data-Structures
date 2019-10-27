@@ -89,7 +89,7 @@ public:
 	entry& insert(K key, V value);
 	iterator find(K to_find);
 
-	hash_table(size_t capacity = 13);
+	hash_table(size_t capacity = 16);
 	~hash_table();
 };
 
@@ -338,7 +338,30 @@ typename hash_table<K, V, Hash, Allocator>::iterator hash_table<K, V, Hash, Allo
 template<typename K, typename V, typename Hash, typename Allocator>
 hash_table<K, V, Hash, Allocator>::hash_table(size_t capacity)
 {
-	this->_capacity = capacity;	// set the capacity
+	// set the capacity; it should round to the nearest power of two but default to 16
+	if (capacity < 16)
+	{
+		this->_capacity = 16;
+	}
+	else if (capacity > 16)
+	{ 
+		// round to nearest power of two; works for 32-bit ints
+		capacity--;
+		capacity |= capacity >> 1;
+		capacity |= capacity >> 2;
+		capacity |= capacity >> 4;
+		capacity |= capacity >> 8;
+		capacity |= capacity >> 16;
+		capacity++;
+
+		// set our capacity
+		this->_capacity = capacity;
+	}
+	else
+	{
+		this->_capacity = capacity;	// set the capacity
+	}
+
 	this->_size = 0;
 	this->hash_function = Hash();	// set our hash function
 	this->buckets = new linked_list<entry>[this->_capacity];	// dynamically allocate the buckets as an array of linked lists
