@@ -1,9 +1,6 @@
 /*
 
-Algorithms and Data Structures
-Copyright 2019 Riley Lannon
-LinkedList.h
-
+linked_list.h
 An implementation of a singly-linked-list using C++ templates
 The list also includes a forward iterator. std::iterator_traits are defined for this iterator using typedefs
 
