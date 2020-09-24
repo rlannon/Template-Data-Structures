@@ -1,236 +1,411 @@
+#pragma once
+
 /*
 
-Algorithms and Data Structures
-Copyright 2019 Riley Lannon
 deque.h
-
-Implements a double-ended queue
+A custom double-ended queue implementation using templates and STL allocators
 
 */
-
-#pragma once
 
 #include <initializer_list>
 #include <memory>
 #include <stdexcept>
 
-template <typename T, typename Alloc = std::allocator<T>>
+// todo: reserve space on both ends so we don't have to move elements every single time we push or pop the front
+// this would require us to have some sort of limit on the amount of empty space we can have in the deque
+// we could also track how many pushes/pops on each side and utilize a heuristic to aid in making reallocations reflect where we are actually placing the most data
+// e.g., if most data is being pushed onto the back, the allocator should end up resizing with more space on the back than the front
+
+template < typename T, typename Allocator = std::allocator<T> >
 class deque
 {
-    Alloc alloc;
-    size_t _size;
-    size_t _capacity;
+	Allocator _allocator;
 
-    T* buffer;  // a pointer to the buffer's beginning
-    T* first_elem;  // a pointer to the first element
+	size_t _size;
+	size_t _capacity;
+	size_t _first_index;
+	size_t _rend_index;
+	size_t _end_index;
+
+	T *_buffer;
+
+	size_t _last_index() {
+		if (this->empty()) {
+			return this->_first_index;
+		}
+		else {
+			return this->_size + this->_first_index - 1;
+		}
+	}
+
+	void _realloc_expand_buffer() {
+		/*
+		
+		_realloc_expand_buffer
+		Automatically reallocates the buffer to be 1.5x its current capacity
+		
+		*/
+		
+		// note: ensure some space remains on the front of the new buffer
+		size_t new_capacity = (size_t)(this->_capacity * 1.5);
+		if (new_capacity < 4) {
+			new_capacity *= 2;
+		}
+
+		// get the amount of space to put on the front
+		size_t new_first = 0;
+		if (this->_first_index == 0) {
+			size_t size_diff = new_capacity - this->_capacity;
+			new_first = size_diff / 2;
+		}
+
+		T *old_buffer = this->_buffer;
+		this->_buffer = std::allocator_traits<Allocator>::allocate(this->_allocator, new_capacity + 2);
+		if (this->_buffer) {
+			// construct new elements
+			for (size_t i = 0; i < this->_size; i++) {
+				T *to_construct = &old_buffer[this->_first_index + i];
+				std::allocator_traits<Allocator>::construct(this->_allocator, &this->_buffer[new_first + i], *to_construct);
+				std::allocator_traits<Allocator>::destroy(this->_allocator, to_construct);
+			}
+
+			// deallocate the old buffer
+			std::allocator_traits<Allocator>::deallocate(this->_allocator, old_buffer, this->_capacity + 2);
+			this->_capacity = new_capacity;
+			this->_first_index = new_first;
+		}
+		else {
+			throw std::bad_alloc();
+		}
+
+		return;
+	}
+
 public:
-    // implement a random-access iterator
-    class iterator
-    {
-        T* ptr;
-    public:
-        // iterator traits
-        typedef T value_type;
-        typedef std::random_access_iterator_tag iterator_category;
-        typedef ptrdiff_t difference_type;
-        typedef T* pointer;
-        typedef T& reference;
+	// some typedefs
+	typedef T value_type;
+	typedef Allocator allocator_type;
+	typedef T& reference;
+	typedef const T& const_reference;
+	typedef T* pointer;
+	typedef const T* const_pointer;
 
-        /*
+	// todo: handle end() and rend() for past-the-end elements
+	// this means these elements must exist in the container
 
-        Overloaded Operators
+	// a random-access iterator
+	class iterator
+	{
+		T *ptr;
 
-        */
+		iterator(T *p) {
+			this->ptr = p;
+		}
+	public:
+		typedef T value_type;
+		typedef std::random_access_iterator_tag iterator_category;
+		typedef ptrdiff_t difference_type;
+		typedef T* pointer;
+		typedef T& reference;
 
-        // inequalities
-        bool operator==(const iterator right);
-        bool operator!=(const iterator right);
-        bool operator>(const iterator right);
-        bool operator>=(const iterator right);
-        bool operator<(const iterator right);
-        bool operator<=(const iterator right);
+		bool operator==(const iterator& right) {
+			return this->ptr == right.ptr;
+		}
 
-        // dereferencing
-        T& operator*()
-        {
-            return *this->ptr;
-        }
+		bool operator!=(const iterator& right) {
+			return this->ptr != right.ptr;
+		}
 
-        T* operator->()
-        {
-            return this->ptr;
-        }
+		bool operator<(const iterator& right) {
+			return this->ptr < right.ptr;
+		}
 
-        // offset
-        T& operator[](difference_type idx)
-        {
-            return this->ptr[idx];
-        }
+		bool operator>(const iterator& right) {
+			return this->ptr > right.ptr;
+		}
 
-        // arithmetic
-        iterator& operator++()
-        {
-            // prefix ++ operator
-            this->ptr++;
-            return *this;
-        }
+		bool operator>=(const iterator& right) {
+			return this->ptr >= right.ptr;
+		}
 
-        iterator operator++(int)
-        {
-            // postfix ++ operator
-            auto to_return = *this;
-            this->ptr++;
-            return to_return;
-        }
+		bool operator<=(const iterator& right) {
+			return this->ptr <= right.ptr;
+		}
 
-        iterator& operator--()
-        {
-            // prefix -- operator
-            this->ptr--;
-            return *this;
-        }
+		difference_type operator+(const difference_type& right) {
+			return this->ptr + right;
+		}
 
-        iterator operator--(int)
-        {
-            // postfix -- operator
-            auto to_return = *this;
-            this->ptr--;
-            return to_return;
-        }
+		difference_type operator-(const difference_type& right) {
+			return this->ptr - right;
+		}
 
-        // + with int, iterator
-        iterator& operator+(difference_type right)
-        {
-            this->ptr += right;
-            return *this;
-        }
+		difference_type operator-(const iterator& right) {
+			return this->ptr - right.ptr;
+		}
+		
+		T& operator*() {
+			return *this->ptr;
+		}
 
-        iterator& operator+(iterator right)
-        {
-            this->ptr += right->ptr;
-            return *this;
-        }
+		T* operator->() const {
+			return this->ptr;
+		}
+		
+		iterator& operator++() {
+			if (this->ptr) {
+				this->ptr++;
+				return *this;
+			}
+			else {
+				throw std::out_of_range("deque");
+			}
+		}
 
-        // - with int, iterator
-        iterator& operator-(difference_type right)
-        {
-            this->ptr += right;
-            return *this;
-        }
+		iterator operator++(int) {
+			if (this->ptr) {
+				iterator to_return(*this);
+				this->ptr++;
+				return to_return;
+			}
+			else {
+				throw std::out_of_range("deque");
+			}
+		}
 
-        iterator& operator-(iterator right)
-        {
-            this->ptr += right->ptr;
-            return *this;
-        }
+		iterator& operator--() {
+			if (this->ptr) {
+				this->ptr--;
+				return *this;
+			}
+			else {
+				throw std::out_of_range("deque");
+			}
+		}
 
-        // compound assigment with + and -
-        iterator& operator+=(difference_type right);
-        iterator& operator-=(difference_type right);
+		iterator operator--(int) {
+			if (this->ptr) {
+				iterator to_return(*this);
+				this->ptr++;
+				return to_return;
+			}
+			else {
+				throw std::out_of_range("deque");
+			}
+		}
 
-        // TODO: overload std::swap(a, b)
+		iterator& operator=(const T& right) {
+			this->ptr = &right;
+			return *this;
+		}
 
-        // constructors, destructors
-        iterator(T* ptr)
-        {
-            this->ptr = ptr;
-        }
+		iterator& operator+=(const difference_type& right) {
+			this->ptr += right;
+			return *this;
+		}
 
-        iterator()
-        {
-            this->ptr = nullptr;
-        }
+		iterator& operator-=(const difference_type& right) {
+			this->ptr -= right;
+			return *this;
+		}
 
-        ~iterator()
-        {
+		iterator& operator=(const iterator& right) {
+			this->ptr = right.ptr;
+		}
 
-        }
-    };
+		iterator& operator[](const difference_type n) {
+			return this->ptr + (n * sizeof(T));
+		}
 
-    // iterator-returning functions
-    iterator begin() const { return iterator(&this->buffer[0]); }
-    iterator back() const { return iterator(&this->buffer[this->_size - 1]); }
-    iterator end() const { return iterator(&this->buffer[this->_size]); }
+		iterator() {
+			this->ptr = nullptr;
+		}
 
-    void push_back(T to_push);
-    void push_front(T to_push);
+		iterator(const iterator& right) {
+			this->ptr = right.ptr;
+		}
+	};
 
-    T pop_back();
-    T pop_front();
+	size_t size() const {
+		return this->_size;
+	}
 
-    explicit deque(std::initializer_list<T> il);
-    explicit deque();
-    ~deque();
+	size_t capacity() const {
+		return this->_capacity;
+	}
+
+	bool empty() const {
+		return this->_size == 0;
+	}
+
+	T& at(size_t n) {
+		if (n < this->_size) {
+			return this->_buffer[this->_first_index + n];
+		}
+		else {
+			throw std::out_of_range("deque");
+		}
+	}
+
+	T& operator[] (size_t n) {
+		return this->at(n);
+	}
+
+	T& peek_back() {
+		if (!this->empty()) {
+			return this->_buffer[this->_last_index()];
+		}
+		else {
+			throw std::out_of_range("Cannot peek empty deque");
+		}
+	}
+
+	T& peek_front() {
+		if (!this->empty()) {
+			return this->_buffer[this->_first_index];
+		}
+		else {
+			throw std::out_of_range("Cannot peek empty deque");
+		}
+	}
+
+	T pop_back() {
+		T to_return;
+
+		if (!this->empty()) {
+			T *addr = &this->_buffer[this->_last_index()];
+			to_return = *addr;
+
+			std::allocator_traits<Allocator>::destroy(this->_allocator, addr);
+			this->_size -= 1;
+
+		}
+		else {
+			throw std::out_of_range("deque is empty");
+		}
+		
+		return to_return;
+	}
+
+	T pop_front() {
+		T to_return;
+
+		if (!this->empty()) {
+			T *addr = &this->_buffer[this->_first_index];
+			to_return = *addr;
+
+			std::allocator_traits<Allocator>::destroy(this->_allocator, addr);
+			this->_size -= 1;
+			this->_first_index += 1;
+		}
+		else {
+			throw std::out_of_range("deque is empty");
+		}
+
+		return to_return;
+	}
+
+	void push_back(T &elem) {
+		// if we have no room at the end, we need to move things around
+		if (this->_last_index() == this->_capacity - 1) {
+			if (this->_first_index > 1) {
+				// move elements forward in the deque
+				for (size_t i = 0; i < this->_size; i++) {
+					this->_buffer[i + 1] = this->_buffer[this->_first_index + i];
+				}
+				this->_first_index = 1;
+			}
+			else {
+				// reallocate the deque
+				this->_realloc_expand_buffer();
+			}
+		}
+
+		// now, push back
+		this->_size += 1;
+		T *addr = &this->_buffer[this->_last_index()];
+		std::allocator_traits<Allocator>::construct(this->_allocator, addr, elem);
+
+		return;
+	}
+
+	void push_front(T &elem) {
+		// if we don't have room at the front, we need to move all elements back
+		if (this->_first_index == 1) {
+			if (this->_size == this->_capacity) {
+				// reallocate the deque
+				this->_realloc_expand_buffer();
+			}
+			else {
+				// move elements back
+				for (size_t i = this->_last_index(); i > 1; i--) {
+					this->_buffer[i + 1] = this->_buffer[i];
+				}
+				this->_first_index += 1;
+			}
+		}
+
+		// now, push front
+		this->_size += 1;
+		this->_first_index -= 1;
+		T *addr = &this->_buffer[this->_first_index];
+		std::allocator_traits<Allocator>::construct(this->_allocator, addr, elem);
+
+		return;
+	}
+
+	iterator& front() {
+		if (this->empty())
+			throw std::out_of_range("deque::front");
+		else
+			return this->_buffer[this->_first_index];
+	}
+
+	iterator& back() {
+		if (this->empty())
+			throw std::out_of_range("deque::back");
+		else
+			return this->_buffer[this->_last_index()];
+	}
+
+	iterator begin() {
+		if (this->empty())
+			return iterator(&this->_buffer[this->_rend_index]);
+		else
+			return iterator(&this->_buffer[this->_first_index]);
+	}
+
+	iterator end() {
+		return iterator(&this->_buffer[this->_end_index]);
+	}
+
+	iterator rend() {
+		return iterator(&this->_buffer[this->_rend_index]);
+	}
+
+	deque() {
+		this->_allocator = Allocator();
+		this->_capacity = 12;
+		this->_buffer = std::allocator_traits<Allocator>::allocate(this->_allocator, this->_capacity + 2);
+
+		this->_size = 0;
+		this->_first_index = 5;
+
+		this->_rend_index = 0;
+		this->_end_index = 9;
+	}
+
+	~deque() {
+		for (size_t i = this->_first_index; i < this->_last_index(); i++) {
+			T *to_destroy = &this->_buffer[i];
+			std::allocator_traits<Allocator>::destroy(this->_allocator, to_destroy);
+		}
+		this->_size = 0;
+
+		std::allocator_traits<Allocator>::deallocate(this->_allocator, this->_buffer, this->_capacity);
+		this->_buffer = nullptr;
+		this->_capacity = 0;
+		this->_size = 0;
+		this->_first_index = 0;
+	}
 };
-
-template <typename T, typename Alloc>
-inline void deque<T, Alloc>::push_back(T to_push)
-{
-    
-}
-
-template <typename T, typename Alloc>
-inline void deque<T, Alloc>::push_front(T to_push)
-{
-    
-}
-
-template <typename T, typename Alloc>
-inline T deque<T, Alloc>::pop_back()
-{
-    return T();
-}
-
-template <typename T, typename Alloc>
-inline T deque<T, Alloc>::pop_front()
-{
-    return T();
-}
-
-/*
-
-Constructors, Destructor
-
-*/
-
-template <typename T, typename Alloc>
-inline deque<T, Alloc>::deque(std::initializer_list<T> li)
-{
-    // allocate space for the list plus a little extra
-    this->alloc = Alloc();
-    this->_capacity = ((li.size * 1.5) < 4) ? (li.size * 2) : (li.size * 1.5);
-    this->buffer = this->alloc.allocate(this->_capacity);
-    
-    // push our elements
-    this->_size = 0;
-    for (auto elem: li)
-    {
-        std::allocator_traits<Alloc>::construct(this->alloc, &this->buffer[this->_size], elem);
-        this->_size += 1;
-    }
-}
-
-template <typename T, typename Alloc>
-inline deque<T, Alloc>::deque()
-{
-    this->alloc = Alloc();
-    this->_capacity = 0;
-    this->_size = 0;
-    this->buffer = nullptr;
-}
-
-template <typename T, typename Alloc>
-inline deque<T, Alloc>::~deque()
-{
-    // destroy any remaining objects in the deque
-    for (size_t i = 0; i < this->_size; i++)
-    {
-        std::allocator_traits<Alloc>::destroy(this->alloc, &this->first_elem[i]);
-    }
-
-    // deallocate the space
-    this->alloc.deallocate(this->buffer, this->_capacity);
-    this->buffer = nullptr;
-    this->_capacity = 0;
-    this->_size = 0;
-}

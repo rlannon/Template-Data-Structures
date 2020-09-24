@@ -81,7 +81,7 @@ void stack<T, Allocator>::push_back(T to_push)
 	}
 	else if (this->_size == this->_capacity)
 	{
-		size_t new_capacity = this->_capacity * 1.5;
+		size_t new_capacity = (size_t)(this->_capacity * 1.5);
 
 		// if the capacity is less than 4, multiply it by two because of rounding
 		if (new_capacity < 4)
