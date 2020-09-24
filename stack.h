@@ -43,7 +43,7 @@ Getters
 template <typename T, typename Allocator>
 size_t stack<T, Allocator>::max_size() const
 {
-	return this->_stack_allocator.max_size();
+	return std::allocator_traits<Allocator>::max_size(this->_stack_allocator);
 }
 
 template <typename T, typename Allocator>
@@ -76,8 +76,8 @@ void stack<T, Allocator>::push_back(T to_push)
 	if (this->_capacity == 0)
 	{
 		// if we have nothing on the stack, allocate space for four elements
-		this->_buffer = this->_stack_allocator.allocate(4);
 		this->_capacity = 4;
+		this->_buffer = std::allocator_traits<Allocator>::allocate(this->_stack_allocator, this->_capacity);
 	}
 	else if (this->_size == this->_capacity)
 	{
@@ -90,24 +90,30 @@ void stack<T, Allocator>::push_back(T to_push)
 		}
 
 		T* old_buff_ptr = this->_buffer;
-		this->_buffer = this->_stack_allocator.allocate(new_capacity);
+		this->_buffer = std::allocator_traits<Allocator>::allocate(this->_stack_allocator, new_capacity);
 
 		if (this->_buffer)
 		{
-			memcpy(this->_buffer, old_buff_ptr, this->_size * sizeof(T));
-			this->_stack_allocator.deallocate(old_buff_ptr, this->_size);
+			// construct new elements and delete the old ones
+			for (size_t i = 0; i < this->_size; i++) {
+				T *to_construct = &old_buff_ptr[i];
+				std::allocator_traits<Allocator>::construct(this->_stack_allocator, &this->_buffer[i], *to_construct);
+				std::allocator_traits<Allocator>::destroy(this->_stack_allocator, to_construct);
+			}
 
+			// deallocate the old buffer
+			std::allocator_traits<Allocator>::deallocate(this->_stack_allocator, old_buff_ptr, this->_capacity);
 			this->_capacity = new_capacity;
 		}
 		else
 		{
-			throw std::runtime_error("Cannot push back");
+			throw std::bad_alloc();
 		}
 	}
 
 	// utilize placement new
 	T *addr = &this->_buffer[this->_size];
-	new (addr) T(to_push);
+	std::allocator_traits<Allocator>::construct(this->_stack_allocator, addr, to_push);
 	this->_size += 1;
 
 	return;
@@ -127,9 +133,8 @@ T stack<T, Allocator>::pop_back()
 		// return by value
 		to_return = this->_buffer[this->_size - 1];
 
-		// placement delete
 		T *addr = &this->_buffer[this->_size - 1];
-		addr->~T();
+		std::allocator_traits<Allocator>::destroy(this->_stack_allocator, addr);
 		this->_size -= 1;
 	}
 
@@ -172,7 +177,7 @@ stack<T, Allocator>::stack(std::initializer_list<T> il)
 
 	// allocate space for the initialized values
 	this->_capacity = ((il.size() * 1.5) < 4) ? (il.size() * 2) : (il.size() * 1.5);
-	this->_buffer = this->_stack_allocator.allocate(this->_capacity);
+	this->_buffer = std::allocator_traits<Allocator>::allocate(this->_stack_allocator, this->_capacity);
 	this->_size = 0;
 
 	// now, for every element in il, push to the buffer
@@ -180,7 +185,7 @@ stack<T, Allocator>::stack(std::initializer_list<T> il)
 	{
 		// utilize placement new
 		T *addr = &this->_buffer[this->_size];
-		new( addr ) T(elem);
+		std::allocator_traits<Allocator>::construct(this->_stack_allocator, addr);
 		this->_size += 1;
 	}
 }
@@ -202,12 +207,12 @@ stack<T, Allocator>::~stack()
 	{
 		// utilize placement delete
 		T *to_destroy = &this->_buffer[i];
-		to_destroy->~T();
+		std::allocator_traits<Allocator>::destroy(this->_stack_allocator, to_destroy);
 	}
 	this->_size -= 1;
 
 	// deallocate the memory, set the capacity to 0, set the buffer to nullptr
-	this->_stack_allocator.deallocate(this->_buffer, this->_capacity);
+	std::allocator_traits<Allocator>::deallocate(this->_stack_allocator, this->_buffer, this->_capacity);
 	this->_capacity = 0;
 	this->_buffer = nullptr;
 }
