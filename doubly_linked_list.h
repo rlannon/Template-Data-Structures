@@ -93,13 +93,13 @@ public:
 
 		// todo: mode operators
 
-		list_iterator& operator=(const iterator& right)
+		list_iterator& operator=(const list_iterator& right)
 		{
 			this->ptr = right.ptr;
 			return *this;
 		}
 
-		list_iterator(const iterator& it)
+		list_iterator(const list_iterator& it)
 		{
 			this->ptr = it.ptr;
 		}

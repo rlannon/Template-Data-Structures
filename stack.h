@@ -92,23 +92,16 @@ void stack<T, Allocator>::push_back(T to_push)
 		T* old_buff_ptr = this->_buffer;
 		this->_buffer = std::allocator_traits<Allocator>::allocate(this->_stack_allocator, new_capacity);
 
-		if (this->_buffer)
-		{
-			// construct new elements and delete the old ones
-			for (size_t i = 0; i < this->_size; i++) {
-				T *to_construct = &old_buff_ptr[i];
-				std::allocator_traits<Allocator>::construct(this->_stack_allocator, &this->_buffer[i], *to_construct);
-				std::allocator_traits<Allocator>::destroy(this->_stack_allocator, to_construct);
-			}
+		// construct new elements and delete the old ones
+		for (size_t i = 0; i < this->_size; i++) {
+			T *to_construct = &old_buff_ptr[i];
+			std::allocator_traits<Allocator>::construct(this->_stack_allocator, &this->_buffer[i], *to_construct);
+			std::allocator_traits<Allocator>::destroy(this->_stack_allocator, to_construct);
+		}
 
-			// deallocate the old buffer
-			std::allocator_traits<Allocator>::deallocate(this->_stack_allocator, old_buff_ptr, this->_capacity);
-			this->_capacity = new_capacity;
-		}
-		else
-		{
-			throw std::bad_alloc();
-		}
+		// deallocate the old buffer
+		std::allocator_traits<Allocator>::deallocate(this->_stack_allocator, old_buff_ptr, this->_capacity);
+		this->_capacity = new_capacity;
 	}
 
 	// utilize placement new

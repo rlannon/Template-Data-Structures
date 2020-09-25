@@ -29,28 +29,35 @@ public:
 	typedef T value_type;
 
 	// define the iterator for the linked list
-	class iterator
+	template<typename node_type>
+	class list_iterator
 	{
-		node<T>* ptr;
+		node_type* ptr;
+		list_iterator(node_type* ptr);
 	public:
 		// define _all_ of std::iterator_traits struct members or it won't work
-		typedef node<T> value_type;
+		typedef node_type value_type;
 		typedef std::forward_iterator_tag iterator_category;
 		typedef ptrdiff_t difference_type;
-		typedef node<T>* pointer;
-		typedef node<T>& reference;
+		typedef node_type* pointer;
+		typedef node_type& reference;
 
-		bool operator==(const iterator right);
-		bool operator!=(const iterator right);
-		node<T>& operator*();
-		node<T>* operator->() const;
-		iterator& operator++();
-		iterator operator++(int);
+		bool operator==(const list_iterator right);
+		bool operator!=(const list_iterator right);
+		node_type& operator*();
+		node_type* operator->() const;
+		list_iterator& operator++();
+		list_iterator operator++(int);
 
-		iterator(node<T>* ptr);
-		iterator();
-		~iterator();
+		list_iterator& operator=(const list_iterator& right);
+
+		list_iterator(const list_iterator& it);
+		list_iterator();
+		~list_iterator();
 	};
+
+	typedef list_iterator< node<T> > iterator;
+	typedef list_iterator< const node<T> > const_iterator;
 
 	// iterators
 	iterator begin() const;
@@ -338,31 +345,36 @@ iterator functions
 */
 
 template <typename T>
-bool linked_list<T>::iterator::operator==(const linked_list<T>::iterator right)
+template <typename node_type>
+bool linked_list<T>::list_iterator<node_type>::operator==(const linked_list<T>::list_iterator<node_type> right)
 {
 	return this->ptr == right.ptr;
 }
 
 template <typename T>
-bool linked_list<T>::iterator::operator!=(const linked_list<T>::iterator right)
+template <typename node_type>
+bool linked_list<T>::list_iterator<node_type>::operator!=(const linked_list<T>::list_iterator<node_type> right)
 {
 	return this->ptr != right.ptr;
 }
 
 template <typename T>
-node<T>& linked_list<T>::iterator::operator*()
+template <typename node_type>
+node_type& linked_list<T>::list_iterator<node_type>::operator*()
 {
 	return *this->ptr;
 }
 
 template <typename T>
-node<T>* linked_list<T>::iterator::operator->() const
+template <typename node_type>
+node_type* linked_list<T>::list_iterator<typename node_type>::operator->() const
 {
 	return this->ptr;
 }
 
 template <typename T>
-typename linked_list<T>::iterator& linked_list<T>::iterator::operator++()
+template <typename node_type>
+linked_list<T>::list_iterator<node_type>& linked_list<T>::list_iterator<node_type>::operator++()
 {
 	/*
 	
@@ -383,7 +395,8 @@ typename linked_list<T>::iterator& linked_list<T>::iterator::operator++()
 }
 
 template <typename T>
-typename linked_list<T>::iterator linked_list<T>::iterator::operator++(int)
+template <typename node_type>
+linked_list<T>::list_iterator<node_type> linked_list<T>::list_iterator<node_type>::operator++(int)
 {
 	/*
 	
@@ -405,19 +418,37 @@ typename linked_list<T>::iterator linked_list<T>::iterator::operator++(int)
 }
 
 template <typename T>
-linked_list<T>::iterator::iterator(node<T>* ptr)
+template <typename node_type>
+linked_list<T>::list_iterator<node_type>& linked_list<T>::list_iterator<node_type>::operator=(const list_iterator<node_type>& right)
+{
+	this->ptr = right.ptr;
+	return *this;
+}
+
+template <typename T>
+template <typename node_type>
+linked_list<T>::list_iterator<node_type>::list_iterator(node_type* ptr)
 {
 	this->ptr = ptr;
 }
 
 template <typename T>
-linked_list<T>::iterator::iterator()
+template <typename node_type>
+linked_list<T>::list_iterator<node_type>::list_iterator(const list_iterator& it)
+{
+	this->ptr = it.ptr;
+}
+
+template <typename T>
+template <typename node_type>
+linked_list<T>::list_iterator<node_type>::list_iterator()
 {
 	this->ptr = nullptr;
 }
 
 template <typename T>
-linked_list<T>::iterator::~iterator()
+template <typename node_type>
+linked_list<T>::list_iterator<node_type>::~list_iterator()
 {
 	
 }
