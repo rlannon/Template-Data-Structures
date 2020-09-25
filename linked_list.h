@@ -16,9 +16,11 @@ The list also includes a forward iterator. std::iterator_traits are defined for 
 
 #include "node.h"
 
-template <typename T>
+template < typename T, typename Allocator = std::allocator< node<T> > >
 class linked_list
 {
+	Allocator _allocator;
+
 	node<T>* head;
 	node<T>* tail;
 
@@ -83,28 +85,30 @@ public:
 	~linked_list();
 };
 
-template <typename T>
-typename linked_list<T>::iterator linked_list<T>::begin() const
+template <typename T, typename Allocator>
+typename linked_list<T, Allocator>::iterator linked_list<T, Allocator>::begin() const
 {
 	return iterator(this->head);
 }
 
-template <typename T>
-typename linked_list<T>::iterator linked_list<T>::back() const
+template <typename T, typename Allocator>
+typename linked_list<T, Allocator>::iterator linked_list<T, Allocator>::back() const
 {
 	return iterator(this->tail);
 }
 
-template <typename T>
-typename linked_list<T>::iterator linked_list<T>::end() const
+template <typename T, typename Allocator>
+typename linked_list<T, Allocator>::iterator linked_list<T, Allocator>::end() const
 {
 	return iterator(nullptr);
 }
 
-template<class T>
-inline void linked_list<T>::append(node<T> to_append)
+template<typename T, typename Allocator>
+inline void linked_list<T, Allocator>::append(node<T> to_append)
 {
-	node<T>* temp = new node<T>(to_append);	// allocate the new node
+	// allocate our node
+	node<T>* temp = std::allocator_traits<Allocator>::allocate(this->_allocator, 1);
+	std::allocator_traits<Allocator>::construct(this->_allocator, temp, to_append);
 
 	// if we don't have anything in the list, set "head" to point to the node
 	if (this->head == nullptr)
@@ -121,14 +125,14 @@ inline void linked_list<T>::append(node<T> to_append)
 	this->tail = temp;
 }
 
-template<class T>
-inline void linked_list<T>::append(T val)
+template<typename T, typename Allocator>
+inline void linked_list<T, Allocator>::append(T val)
 {
 	this->append(node<T>(val));		// just use our other append function by creating a node from the value
 }
 
-template<class T>
-inline void linked_list<T>::insert(T val, size_t pos)
+template<typename T, typename Allocator>
+inline void linked_list<T, Allocator>::insert(T val, size_t pos)
 {
 	/*
 	
@@ -160,7 +164,8 @@ inline void linked_list<T>::insert(T val, size_t pos)
 	// else, if we are within the list
 	else
 	{
-		node<T>* new_node = new node<T>(val);
+		node<T>* new_node = std::allocator_traits<Allocator>::allocate(this->_allocator, 1);
+		std::allocator_traits<Allocator>::construct(this->_allocator, new_node, val);
 
 		// if we are inserting at position 0, we need to update LinkedList<T>::head
 		if (current_pos == 0)
@@ -176,8 +181,8 @@ inline void linked_list<T>::insert(T val, size_t pos)
 	}
 }
 
-template<class T>
-inline void linked_list<T>::insert(T val, iterator pos)
+template<typename T, typename Allocator>
+inline void linked_list<T, Allocator>::insert(T val, iterator pos)
 {
 	iterator current_pos = this->begin();
 	iterator previous_pos = this->begin();
@@ -202,7 +207,9 @@ inline void linked_list<T>::insert(T val, iterator pos)
 		// safety check
 		if (current_pos != this->end())
 		{
-			node<T>* new_node = new node<T>(val);
+			node<T>* new_node = std::allocator_traits<Allocator>::allocate(this->_allocator, 1);
+			std::allocator_traits<Allocator>::construct(this->_allocator, new_node, val);
+
 			node<T>* previous_node = previous_pos.get_ptr();
 
 			// current_pos is where we want new_node to go; set prev -> new -> cur
@@ -217,12 +224,12 @@ inline void linked_list<T>::insert(T val, iterator pos)
 	}
 }
 
-template <typename T>
-inline node<T>* linked_list<T>::search(T to_find) const
+template <typename T, typename Allocator>
+inline node<T>* linked_list<T, Allocator>::search(T to_find) const
 {
 	// Finds a node in the list by value. Returns the first one.
 
-	linked_list<T>::iterator it = this->begin();
+	linked_list<T, Allocator>::iterator it = this->begin();
 	while (it != this->end() && *it != to_find)
 	{
 		it++;
@@ -232,11 +239,11 @@ inline node<T>* linked_list<T>::search(T to_find) const
 	return it.get_ptr();
 }
 
-template <typename T>
-inline void linked_list<T>::erase(T val)
+template <typename T, typename Allocator>
+inline void linked_list<T, Allocator>::erase(T val)
 {
 	// Erase a value from the list; if the value is not found, throws an exception
-	linked_list<T>::iterator to_delete = this->begin();
+	linked_list<T, Allocator>::iterator to_delete = this->begin();
 	node<T>* prev = to_delete.get_ptr();
 	bool done = false;
 
@@ -264,21 +271,22 @@ inline void linked_list<T>::erase(T val)
 		prev->set_next(to_delete.get_ptr()->get_next());
 
 		// delete the node
-		delete to_delete.get_ptr();
+		std::allocator_traits<Allocator>::destroy(this->_allocator, to_delete.get_ptr());
+		std::allocator_traits<Allocator>::deallocate(this->_allocator, to_delete.get_ptr(), 1);
 
 		// decrease the list length by 1
 		this->length -= 1;
 	}
 }
 
-template <typename T>
-inline size_t linked_list<T>::size() const
+template <typename T, typename Allocator>
+inline size_t linked_list<T, Allocator>::size() const
 {
 	return this->length;
 }
 
-template<typename T>
-inline linked_list<T>::linked_list(std::initializer_list<T> il)
+template<typename T, typename Allocator>
+inline linked_list<T, Allocator>::linked_list(std::initializer_list<T> il)
 {
 	// allow linked lists to be initialized with std::initializer_list<T>
 
@@ -286,13 +294,17 @@ inline linked_list<T>::linked_list(std::initializer_list<T> il)
 	{
 		this->length = il.size();
 		typename std::initializer_list<T>::iterator it = il.begin();
-		this->head = new node<T>(*it);
+		this->head = std::allocator_traits<Allocator>::allocate(this->_allocator, 1);
+		std::allocator_traits<Allocator>::construct(this->_allocator, this->head, *it);
+
 		node<T>* current = this->head;
 		it++;
 
 		for (; it != il.end(); it++)
 		{
-			node<T>* next = new node<T>(*it);
+			node<T>* next = std::allocator_traits<Allocator>::allocate(this->_allocator, 1);
+			std::allocator_traits<Allocator>::construct(this->_allocator, next, *it);
+
 			current->set_next(next);
 			current = next;
 		}
@@ -305,18 +317,19 @@ inline linked_list<T>::linked_list(std::initializer_list<T> il)
 	}
 }
 
-template <typename T>
-inline linked_list<T>::linked_list()
+template <typename T, typename Allocator>
+inline linked_list<T, Allocator>::linked_list()
 {
 	// initialize an empty linked list
 
 	this->head = nullptr;
 	this->tail = nullptr;
 	this->length = 0;
+	this->_allocator = Allocator();
 }
 
-template<class T>
-inline linked_list<T>::~linked_list()
+template<typename T, typename Allocator>
+inline linked_list<T, Allocator>::~linked_list()
 {
 	if (this->length > 0) {
 		// if our head isn't a nullptr, we have to iterate through the list and delete all of our nodes to avoid a memory leak
@@ -330,7 +343,8 @@ inline linked_list<T>::~linked_list()
 				current = current->get_next();
 
 				// delete the dynamic object and set the pointer to 0x00
-				delete temp;
+				std::allocator_traits<Allocator>::destroy(this->_allocator, temp);
+				std::allocator_traits<Allocator>::deallocate(this->_allocator, temp, 1);
 				temp = nullptr;
 			}
 		}
@@ -344,37 +358,37 @@ iterator functions
 
 */
 
-template <typename T>
+template <typename T, typename Allocator>
 template <typename node_type>
-bool linked_list<T>::list_iterator<node_type>::operator==(const linked_list<T>::list_iterator<node_type> right)
+bool linked_list<T, Allocator>::list_iterator<node_type>::operator==(const linked_list<T, Allocator>::list_iterator<node_type> right)
 {
 	return this->ptr == right.ptr;
 }
 
-template <typename T>
+template <typename T, typename Allocator>
 template <typename node_type>
-bool linked_list<T>::list_iterator<node_type>::operator!=(const linked_list<T>::list_iterator<node_type> right)
+bool linked_list<T, Allocator>::list_iterator<node_type>::operator!=(const linked_list<T, Allocator>::list_iterator<node_type> right)
 {
 	return this->ptr != right.ptr;
 }
 
-template <typename T>
+template <typename T, typename Allocator>
 template <typename node_type>
-node_type& linked_list<T>::list_iterator<node_type>::operator*()
+node_type& linked_list<T, Allocator>::list_iterator<node_type>::operator*()
 {
 	return *this->ptr;
 }
 
-template <typename T>
+template <typename T, typename Allocator>
 template <typename node_type>
-node_type* linked_list<T>::list_iterator<typename node_type>::operator->() const
+node_type* linked_list<T, Allocator>::list_iterator<typename node_type>::operator->() const
 {
 	return this->ptr;
 }
 
-template <typename T>
+template <typename T, typename Allocator>
 template <typename node_type>
-linked_list<T>::list_iterator<node_type>& linked_list<T>::list_iterator<node_type>::operator++()
+linked_list<T, Allocator>::list_iterator<node_type>& linked_list<T, Allocator>::list_iterator<node_type>::operator++()
 {
 	/*
 	
@@ -394,9 +408,9 @@ linked_list<T>::list_iterator<node_type>& linked_list<T>::list_iterator<node_typ
 	}
 }
 
-template <typename T>
+template <typename T, typename Allocator>
 template <typename node_type>
-linked_list<T>::list_iterator<node_type> linked_list<T>::list_iterator<node_type>::operator++(int)
+linked_list<T, Allocator>::list_iterator<node_type> linked_list<T, Allocator>::list_iterator<node_type>::operator++(int)
 {
 	/*
 	
@@ -417,38 +431,38 @@ linked_list<T>::list_iterator<node_type> linked_list<T>::list_iterator<node_type
 	}
 }
 
-template <typename T>
+template <typename T, typename Allocator>
 template <typename node_type>
-linked_list<T>::list_iterator<node_type>& linked_list<T>::list_iterator<node_type>::operator=(const list_iterator<node_type>& right)
+linked_list<T, Allocator>::list_iterator<node_type>& linked_list<T, Allocator>::list_iterator<node_type>::operator=(const list_iterator<node_type>& right)
 {
 	this->ptr = right.ptr;
 	return *this;
 }
 
-template <typename T>
+template <typename T, typename Allocator>
 template <typename node_type>
-linked_list<T>::list_iterator<node_type>::list_iterator(node_type* ptr)
+linked_list<T, Allocator>::list_iterator<node_type>::list_iterator(node_type* ptr)
 {
 	this->ptr = ptr;
 }
 
-template <typename T>
+template <typename T, typename Allocator>
 template <typename node_type>
-linked_list<T>::list_iterator<node_type>::list_iterator(const list_iterator& it)
+linked_list<T, Allocator>::list_iterator<node_type>::list_iterator(const list_iterator& it)
 {
 	this->ptr = it.ptr;
 }
 
-template <typename T>
+template <typename T, typename Allocator>
 template <typename node_type>
-linked_list<T>::list_iterator<node_type>::list_iterator()
+linked_list<T, Allocator>::list_iterator<node_type>::list_iterator()
 {
 	this->ptr = nullptr;
 }
 
-template <typename T>
+template <typename T, typename Allocator>
 template <typename node_type>
-linked_list<T>::list_iterator<node_type>::~list_iterator()
+linked_list<T, Allocator>::list_iterator<node_type>::~list_iterator()
 {
 	
 }
