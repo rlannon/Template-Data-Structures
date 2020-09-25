@@ -18,10 +18,6 @@ class node
 	T data;
 	node<T>* next;
 public:
-	// allow us to compare node<T> to T by checking the _data_ at the node with the righthand value
-	bool operator==(T right);
-	bool operator!=(T right);
-
 	T& get_data();
 	node<T>* get_next();
 
@@ -32,18 +28,6 @@ public:
 	node();
 	~node();
 };
-
-template <typename T>
-inline bool node<T>::operator==(T right)
-{
-	return this->data == right;
-}
-
-template <typename T>
-inline bool node<T>::operator!=(T right)
-{
-	return this->data != right;
-}
 
 template <typename T>
 inline void node<T>::set_data(T data)
