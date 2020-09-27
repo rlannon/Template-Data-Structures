@@ -59,6 +59,7 @@ public:
 	typedef T value_type;
 	typedef T& reference;
 	typedef T* pointer;
+	typedef Allocator allocator_type;
 
 	// capacity functions
 
@@ -75,6 +76,12 @@ public:
 	const size_t max_size() const noexcept
 	{
 		return std::allocator_traits<Allocator>::max_size(this->_allocator);
+	}
+
+	allocator_type get_allocator() const noexcept
+	{
+		// return a copy of the allocator
+		return this->_allocator;
 	}
 
 	// the list iterator
@@ -201,6 +208,11 @@ public:
 	// define iterator and const_iterator
 	typedef list_iterator< node<T> > iterator;
 	typedef list_iterator< const node<T> > const_iterator;
+
+	// operators
+	
+	// todo: copy and move assignment operators; assign with initializer_list
+	// todo: ensure allocator propagation is handled properly
 
 	// container methods
 	void push_back(const T& val)
@@ -420,6 +432,11 @@ public:
 
 	// constructor, destructor
 
+	explicit doubly_linked_list(const allocator_type& alloc): doubly_linked_list()
+	{
+		this->_allocator = alloc;
+	}
+
 	doubly_linked_list()
 	{
 		this->_allocator = Allocator();
@@ -428,7 +445,46 @@ public:
 		this->_size = 0;
 	}
 
-	// todo: other list constructors
+	// todo: fill constructors
+	explicit doubly_linked_list(size_t n, const allocator_type& alloc = allocator_type())
+	{
+		// fill constructor with default construction of 'val'
+	}
+
+	doubly_linked_list(size_t n, const value_type& val, const allocator_type& alloc = allocator_type())
+	{
+		// fill constructor with 'val'
+	}
+
+	// todo: copy constructors
+	doubly_linked_list(const doubly_linked_list& l)
+	{
+		// copy constructor with default allocator
+	}
+
+	doubly_linked_list(const doubly_linked_list& l, const allocator_type& alloc)
+	{
+		// copy constructor with custom allocator
+	}
+
+	// todo: move constructors
+	doubly_linked_list(const doubly_linked_list&& l)
+	{
+		// move constructor with default allocator
+	}
+
+	doubly_linked_list(const doubly_linked_list&& l, const allocator_type& alloc)
+	{
+		// move constructor with custom allocator
+	}
+
+	// todo: initializer list
+	doubly_linked_list(std::initializer_list<value_type> il, const allocator_type& alloc = allocator_type())
+	{
+		// construct with initializer list
+	}
+
+	// destructor
 
 	~doubly_linked_list()
 	{

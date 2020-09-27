@@ -243,6 +243,13 @@ public:
 	typedef deque_iterator<T> iterator;
 	typedef deque_iterator<const T> const_iterator;
 
+	// overloaded operators
+
+	// todo: overloaded operators
+	// todo: ensure allocator propagation is properly handled
+
+	// member functions
+
 	T& at(size_t n) {
 		if (n < this->_size) {
 			return this->_buffer[this->_first_index + n];
