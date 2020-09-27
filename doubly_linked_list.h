@@ -19,6 +19,10 @@ class doubly_linked_list
 	template <typename N>
 	struct node
 	{
+		typedef N value_type;
+		typedef N* pointer;
+		typedef N& reference;
+
 		N _data;
 		node<N>* _next;
 		node<N>* _previous;
@@ -75,29 +79,109 @@ public:
 
 	// the list iterator
 	// utilizes a template to avoid code duplication
-	template<typename PointerType>
+	template<typename iter_type>
 	class list_iterator
 	{
-		PointerType* ptr;
-		list_iterator(PointerType* ptr)
+		// a pointer to a node<T> or const node<T>
+		iter_type* ptr;
+
+		list_iterator(iter_type* ptr)
 		{
+			// private constructor
 			this->ptr = ptr;
 		}
 	public:
 		// define the iterator traits
-		typedef PointerType value_type;
+		typedef typename iter_type::value_type value_type;
 		typedef std::bidirectional_iterator_tag iterator_category;
 		typedef ptrdiff_t difference_type;
-		typedef PointerType* pointer;
-		typedef PointerType& reference;
+		typedef typename iter_type::pointer pointer;
+		typedef typename iter_type::reference reference;
 
-		// todo: mode operators
+		// overload the operators
+		bool operator==(const list_iterator& right)
+		{
+			return this->ptr == right.ptr;
+		}
+
+		bool operator!=(const list_iterator& right)
+		{
+			return this->ptr != right.ptr;
+		}
+
+		reference operator*()
+		{
+			// return the node::_data member (not the node)
+			return this->ptr->_data;
+		}
+
+		pointer operator->()
+		{
+			// return the address of the node::_data member (not the address of the node)
+			&return this->ptr->_data;
+		}
+		
+		list_iterator& operator++()
+		{
+			if (this->ptr)
+			{
+				this->ptr = this->ptr->_next;
+				return *this;
+			}
+			else
+			{
+				throw std::out_of_range("doubly-linked list");
+			}
+		}
+
+		list_iterator operator++(int)
+		{
+			if (this->ptr)
+			{
+				list_iterator to_return(*this);
+				this->ptr = this->ptr->_next;
+				return to_return;
+			}
+			else
+			{
+				throw std::out_of_range("doubly-linked list");
+			}
+		}
+
+		list_iterator& operator--()
+		{
+			if (this->ptr)
+			{
+				this->ptr = this->ptr->_previous;
+				return *this;
+			}
+			else
+			{
+				throw std::out_of_range("doubly-linked list");
+			}
+		}
+
+		list_iterator operator--(int)
+		{
+			if (this->ptr)
+			{
+				list_iterator to_return(*this);
+				this->ptr = this->ptr->_previous;
+				return to_return;
+			}
+			else
+			{
+				throw std::out_of_range("doubly-linked list");
+			}
+		}
 
 		list_iterator& operator=(const list_iterator& right)
 		{
 			this->ptr = right.ptr;
 			return *this;
 		}
+
+		// constructors
 
 		list_iterator(const list_iterator& it)
 		{
@@ -111,7 +195,6 @@ public:
 
 		~list_iterator()
 		{
-
 		}
 	};
 
@@ -119,6 +202,7 @@ public:
 	typedef list_iterator< node<T> > iterator;
 	typedef list_iterator< const node<T> > const_iterator;
 
+	// container methods
 	void push_back(const T& val)
 	{
 		// allocate and construct the node
@@ -218,6 +302,73 @@ public:
 		}
 	}
 
+	// insert method
+
+	void insert(const_iterator position, const value_type& val)
+	{
+		// insert a single element at 'position', initializing with val
+		// this will move elements behind it back
+
+		// todo: allow move construction
+		auto new_element_pointer = std::allocator_traits<Allocator>::allocate(this->_allocator, 1);
+		std::allocator_traits<Allocator>::construct(this->_allocator, new_element_pointer, val);
+
+		// hold the element before 'position' temporarily so we don't lose it
+		auto previous_position = position.ptr->_previous;
+
+		/*
+		
+		Update the relationships:
+			* the new element points to the element before 'position'
+			* the new element points to the element at 'position'
+			* the element before 'position' is the new element
+		
+		*/
+
+		new_element_pointer->_previous = previous_position;
+		new_element_pointer->_next = position.ptr;
+		position.ptr->_previous = new_element_pointer;
+
+		return;
+	}
+
+	void insert(const_iterator position, size_t n, const value_type& val)
+	{
+		// fills the list with n elements (each initialized by val) at position
+
+		// todo: list fill
+
+		return;
+	}
+
+	template <class InputIterator>
+	void insert(const_iterator position, InputIterator first, InputIterator last)
+	{
+		// insert elements by iterator from first to last at position
+		
+		// todo: iterator insertion
+
+		return;
+	}
+
+	void insert(const_iterator position, value_type&& val)
+	{
+		// move insertion
+
+		// todo: move insertion
+
+		return;
+	}
+
+	void insert(const_iterator position, std::initializer_list<value_type> li)
+	{
+		// insert by initializer list
+
+		// todo: initializer list insertion
+
+		return;
+	}
+
 	// iterators
 
 	iterator begin()
@@ -276,6 +427,8 @@ public:
 		this->_tail = nullptr;
 		this->_size = 0;
 	}
+
+	// todo: other list constructors
 
 	~doubly_linked_list()
 	{
