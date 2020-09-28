@@ -40,7 +40,7 @@ class doubly_linked_list
 			this->_previous = nullptr;
 		}
 
-		node() : node(data())
+		node() : node( N() )
 		{
 		}
 
@@ -89,7 +89,7 @@ public:
 	template<typename iter_type>
 	class list_iterator
 	{
-		// a pointer to a node<T> or const node<T>
+		// a pointer to a node<T> or node<const T>
 		iter_type* ptr;
 
 		list_iterator(iter_type* ptr)
@@ -125,7 +125,7 @@ public:
 		pointer operator->()
 		{
 			// return the address of the node::_data member (not the address of the node)
-			&return this->ptr->_data;
+			return &this->ptr->_data;
 		}
 		
 		list_iterator& operator++()
@@ -207,7 +207,7 @@ public:
 
 	// define iterator and const_iterator
 	typedef list_iterator< node<T> > iterator;
-	typedef list_iterator< const node<T> > const_iterator;
+	typedef list_iterator< node<const T> > const_iterator;
 
 	// operators
 	
@@ -223,7 +223,7 @@ public:
 		
 		if (this->empty())
 		{
-			this->_head = to_append;
+			this->_head = loc;
 		}
 		else if (this->_size == 1)
 		{
@@ -275,13 +275,13 @@ public:
 
 		if (this->empty())
 		{
-			this->_head = to_append;
+			this->_head = loc;
 		}
 		else
 		{
-			this->_head->_previous = to_prepend;
-			to_prepend->_next = this->_head;
-			this->_head = to_prepend;
+			this->_head->_previous = loc;
+			loc->_next = this->_head;
+			this->_head = loc;
 		}
 
 		this->_size += 1;
