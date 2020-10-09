@@ -8,15 +8,29 @@ Implementation of a doubly-linked list
 */
 
 #include <memory>	// std::allocator
-#include <type_traits>	// enable_if
+#include <type_traits>	// std::enable_if
+#include <iterator>
 #include <stdexcept>
 
+// forward-declaration of node
+// it is defined inside doubly_linked_list, but that class requires node<T> as a template parameter
 template <typename N>
 struct node;
 
 template < typename T, typename Allocator = std::allocator< node<T> > >
 class doubly_linked_list
 {
+	/*
+	
+	doubly_linked_list
+	Implementation of a doubly-linked list
+
+	Template parameters:
+		* T	-	The type contained by the list
+		* Allocator	-	The allocator to use; defaults to the STL's default allocator
+	
+	*/
+	
 	template <typename N>
 	struct node
 	{
@@ -35,18 +49,20 @@ class doubly_linked_list
 			this->_previous = r._previous;
 		}
 
-		node(const N& data, node<N>* prev, node<N>* next):
-			_data(data),
-			_next(next),
-			_previous(prev)
+		node(const N& data, node<N>* prev, node<N>* next)
+			: _data(data)
+			, _next(next)
+			, _previous(prev)
 		{
 		}
 
-		node(const N& data) : node(data, nullptr, nullptr)
+		node(const N& data) 
+			: node(data, nullptr, nullptr)
 		{
 		}
 
-		node() : node( N(), nullptr, nullptr )
+		node()
+			: node( N(), nullptr, nullptr )
 		{
 		}
 
@@ -78,13 +94,19 @@ public:
 		return this->_allocator;
 	}
 
-	// the list iterator
-	// utilizes a template to avoid code duplication
 	template<bool is_const = false>
 	class bidirectional_iterator
 	{
-		friend class doubly_linked_list<T, Allocator>;
+		/*
+		
+		Our iterator class
+		
+		Utilizes a template parameter to indicate whether it is a const_iterator
+		This, alongisde std::enable_if, allows us to avoid code duplication
+		
+		*/
 
+		friend class doubly_linked_list<T, Allocator>;
 		// pointer type
 		node<value_type>* ptr;
 
@@ -93,7 +115,6 @@ public:
 			: ptr(other)
 		{
 		}
-
 	public:
 		// definitions
 		// utilize std::conditional in case we have a const type (so const_iterator is implemented properly)
@@ -254,29 +275,11 @@ public:
 		}
 	};
 
-	template<bool is_const = false>
-	class reverse_list_iterator: public bidirectional_iterator<is_const>
-	{
-		node<value_type>* ptr;
-		reverse_list_iterator(node<value_type>* ptr)
-			: ptr(ptr)
-		{
-		}
-	public:
-		reverse_list_iterator()
-		{
-		}
-
-		~reverse_list_iterator()
-		{
-		}
-	};
-
 	// define our iterators
 	typedef bidirectional_iterator<false> iterator;
 	typedef bidirectional_iterator<true> const_iterator;
-	typedef reverse_list_iterator<false> reverse_iterator;
-	typedef reverse_list_iterator<true> const_reverse_iterator;
+	typedef std::reverse_iterator<bidirectional_iterator<false> > reverse_iterator;
+	typedef std::reverse_iterator<bidirectional_iterator<true> > const_reverse_iterator;	// reverse iterators utilize std::reverse_iterator with our iterator as a template parameter
 
 	// modifiers
 	void push_back(const T& val);
@@ -289,7 +292,6 @@ public:
 		// insert a single element at 'position', initializing with val
 		// this will move elements behind it back
 
-		// todo: allow move construction
 		auto new_element_pointer = std::allocator_traits<Allocator>::allocate(this->_allocator, 1);
 		std::allocator_traits<Allocator>::construct(this->_allocator, new_element_pointer, val);
 
@@ -309,6 +311,9 @@ public:
 		new_element_pointer->_next = position.ptr;
 		position.ptr->_previous = new_element_pointer;
 
+		// increment the size
+		this->_size++;
+
 		return;
 	}
 
@@ -316,7 +321,10 @@ public:
 	{
 		// fills the list with n elements (each initialized by val) at position
 
-		// todo: list fill
+		for (size_t i = 0; i < n; i++)
+		{
+			this->insert(position, val);
+		}
 
 		return;
 	}
@@ -334,23 +342,53 @@ public:
 
 	void insert(const_iterator position, T&& val)
 	{
-		// move insertion
+		/*
+		
+		insert
+		Performs a move insertion at 'position' of value 'val'
 
-		// todo: move insertion
+		The value inserted will be the value at 'position', moving elements currently at and after the iterator back
+
+		*/
+		
+		auto new_element_pointer = std::allocator_traits<Allocator>::allocator(this->_allocator, 1);
+		std::allocator_traits<Allocator>::construct(this->_allocator, new_element_pointer, val);
+
+		// hold the element before 'position' temporarily
+		auto previous_position = position.ptr->_previous;
+
+		// update the relationships in the same way as we do in copy insertion
+		new_element_pointer->_previous = previous_position;
+		new_element_pointer->_next = position.ptr;
+		position.ptr->_previous = new_element_pointer;
+
+		// ensure val is set to nullptr, as is required with move semantics
+		val = nullptr;
+
+		// increment the size
+		this->_size++;
 
 		return;
 	}
 
-	void insert(const_iterator position, std::initializer_list<T> li)
+	void insert(const_iterator position, std::initializer_list<T> il)
 	{
-		// insert by initializer list
+		/*
+		
+		insert
+		Inserts elements contained within the list 'li' at 'position'
 
-		// todo: initializer list insertion
+		This will call 'insert' for each element
+
+		*/
+
+		for (auto it = il.begin(); it != il.end(); it++)
+		{
+			this->insert(position, *it);
+		}
 
 		return;
 	}
-
-	// todo: more methods should be supported
 
 	// iterators and accession
 	
@@ -525,7 +563,7 @@ void doubly_linked_list<T, Allocator>::pop_front()
 
 // iterators
 
-// constructor, destructor
+// constructors, destructor
 
 template <typename T, typename Allocator>
 doubly_linked_list<T, Allocator>::doubly_linked_list(const Allocator& alloc): doubly_linked_list()
@@ -542,57 +580,201 @@ doubly_linked_list<T, Allocator>::doubly_linked_list()
 	this->_size = 0;
 }
 
-// todo: fill constructors
-
 template <typename T, typename Allocator>
 doubly_linked_list<T, Allocator>::doubly_linked_list(size_t n, const Allocator& alloc)
 {
-	// fill constructor with default construction of 'val'
+	/*
+	
+	constructor
+	Constructs the doubly-linked list be calling the default constructor for 'n' elements utilizing the specified allocator
+	
+	*/
+
+	this->_allocator = alloc;
+	this->_head = nullptr;
+	this->_tail = nullptr;
+	this->_size = 0;
+
+	node<T>* previous_pointer = nullptr;
+
+	for (size_t i = 0; i < n; i++)
+	{
+		// allocate and construct a new (default) item
+		auto elem_pointer = std::allocator_traits<Allocator>::allocate(this->_allocator, 1);
+		std::allocator_traits<Allocator>::construct(this->_allocator, elem_pointer);
+
+		// set our node
+		if (previous_pointer)
+		{
+			// if we have a previous node, set this as the next one;
+			previous_pointer->_next = elem_pointer;
+		}
+		else {
+			// otherwise, set this as 'previous_pointer' and set the head node
+			this->_head = elem_pointer;
+		}	// todo: this could be optimized slightly by having a check _before_ the loop
+
+		// no matter whether we had a node before this one, we need to assign _tail and previous_pointer
+		previous_pointer = elem_pointer;
+		this->_tail = previous_pointer;
+		this->_size++;
+	}
 }
 
 template <typename T, typename Allocator>
 doubly_linked_list<T, Allocator>::doubly_linked_list(size_t n, const T& val, const Allocator& alloc)
 {
-	// fill constructor with 'val'
+	/*
+	
+	constructor
+	Similar to the above constructor, except that it initializes all elements with 'val'
+	
+	*/
+
+	this->_allocator = alloc;
+	this->_head = nullptr;
+	this->_tail = nullptr;
+	this->_size = 0;
+
+	node<T>* previous_pointer = nullptr;
+
+	for (size_t i = 0; i < n; i++)
+	{
+		// allocate and construct the node
+		auto elem_pointer = std::allocator_traits<Allocator>::allocate(this->_allocator, 1);
+		std::allocator_traits<Allocator>::construct(this->_allocator, elem_pointer, val);
+
+		// set our node
+		if (previous_pointer)
+		{
+			previous_pointer->_next = elem_pointer;
+		}
+		else
+		{
+			this->_head = elem_pointer;
+		}
+
+		// updates that need to happen regardless of whether we had a previous node
+		previous_pointer = elem_pointer;
+		this->_tail = previous_pointer;
+		this->size++;
+	}
 }
 
 // todo: copy constructors
 template <typename T, typename Allocator>
 doubly_linked_list<T, Allocator>::doubly_linked_list(const doubly_linked_list<T, Allocator>& l)
 {
-	// copy constructor with default allocator
+	/*
+	
+	constructor
+	Copy constructor with default allocator
+
+	This only needs to assign a few things -- the list itself doesn't contain elements, just pointers
+
+	*/
+
+	this->_allocator = l._allocator;
+	this->_head = l._head;
+	this->_tail = l._tail;
+	this->_size = l._size;
 }
 
 template <typename T, typename Allocator>
 doubly_linked_list<T, Allocator>::doubly_linked_list(const doubly_linked_list<T, Allocator>& l, const Allocator& alloc)
 {
 	// copy constructor with custom allocator
+	// todo
 }
 
-// todo: move constructors
 template <typename T, typename Allocator>
 doubly_linked_list<T, Allocator>::doubly_linked_list(const doubly_linked_list<T, Allocator>&& l)
 {
-	// move constructor with default allocator
+	/*
+
+	constructor
+	Move constructor with default allocator
+
+	*/
+
+	this->_allocator = l._allocator;
+	this->_head = l._head;
+	this->_tail = l._tail;
+	this->_size = l._size;
+
+	l = nullptr;
 }
 
 template <typename T, typename Allocator>
 doubly_linked_list<T, Allocator>::doubly_linked_list(const doubly_linked_list<T, Allocator>&& l, const Allocator& alloc)
 {
 	// move constructor with custom allocator
+	// todo
 }
 
-// todo: initializer list
 template <typename T, typename Allocator>
 doubly_linked_list<T, Allocator>::doubly_linked_list(std::initializer_list<T> il, const Allocator& alloc)
 {
-	// construct with initializer list
-}
+	/*
+	
+	constructor
+	Constructs the list with an initializer list
 
-// destructor
+	*/
+
+	this->_allocator = alloc;
+	this->_head = nullptr;
+	this->_tail = nullptr;
+	this->_size = 0;
+
+	node<T>* previous_pointer = nullptr;
+
+	// iterate through the initializer list, allocating and constructing new elements for each
+	for (auto it = il.begin(); it != il.end(); it++)
+	{
+		auto elem_pointer = std::allocator_traits<Allocator>::allocate(this->_allocator, 1);
+		std::allocator_traits<Allocator>::construct(this->_allocator, elem_pointer, *it);
+
+		if (previous_pointer)
+		{
+			previous_pointer->_next = elem_pointer;
+		}
+		else
+		{
+			this->_head = elem_pointer;
+		}
+
+		previous_pointer = elem_pointer;
+		this->_tail = previous_pointer;
+		this->_size++;
+	}
+}
 
 template <typename T, typename Allocator>
 doubly_linked_list<T, Allocator>::~doubly_linked_list()
 {
+	/*
+	
+	destructor
+	Walks through the list, calling the destroying and deallocating the objects in the list
+
+	*/
+
 	// walk through the list and call the destructor for every element
+	auto current_pointer = this->_head;
+
+	// if we have a node at the pointer, continue; else, we don't need to do anything (the list is empty)
+	while (current_pointer)
+	{
+		// get the next element (to keep track of it)
+		auto next_pointer = current_pointer->_next;
+
+		// destroy and deallocate the current element
+		std::allocator_traits<Allocator>::destroy(this->_allocator, next_pointer);
+		std::allocator_traits<Allocator>::deallocate(this->_allocator, next_pointer, 1);
+
+		// update the current pointer and decrement the size
+		current_pointer = next_pointer;
+		this->_size--;
+	}
 }
