@@ -7,7 +7,8 @@ Implementation of a doubly-linked list
 
 */
 
-#include <memory>
+#include <memory>	// std::allocator
+#include <type_traits>	// enable_if
 #include <stdexcept>
 
 template <typename N>
@@ -71,59 +72,211 @@ public:
 	const size_t size() const noexcept;
 	const size_t max_size() const noexcept;
 
-	allocator_type get_allocator() const noexcept;
+	allocator_type get_allocator() const noexcept
+	{
+		// return a copy of the allocator
+		return this->_allocator;
+	}
 
 	// the list iterator
 	// utilizes a template to avoid code duplication
-	template<typename iter_type>
+	template<bool is_const = false>
 	class bidirectional_iterator
 	{
-		// a pointer to a node<T> or node<const T>
-		iter_type* ptr;
+		friend class doubly_linked_list<T, Allocator>;
 
-		bidirectional_iterator(iter_type* ptr);
+		// pointer type
+		node<value_type>* ptr;
+
+		// private constructor
+		bidirectional_iterator(node<value_type>* other)
+			: ptr(other)
+		{
+		}
+
 	public:
-		// define the iterator traits
-		typedef typename iter_type::value_type value_type;
-		typedef std::bidirectional_iterator_tag iterator_category;
-		typedef ptrdiff_t difference_type;
-		typedef typename iter_type::pointer pointer;
-		typedef typename iter_type::reference reference;
+		// definitions
+		// utilize std::conditional in case we have a const type (so const_iterator is implemented properly)
+		using difference_type = std::ptrdiff_t;
+		using value_type = std::conditional< is_const, const T, T>;
+		using pointer = std::conditional< is_const, const value_type*, value_type*>;
+		using reference = std::conditional< is_const, const value_type&, value_type& >;
+		using const_pointer = const T*;
+		using const_reference = const T&;
+		using iterator_category = std::bidirectional_iterator_tag;
 
-		// overload the operators
-		bool operator==(const bidirectional_iterator& right);
-		bool operator!=(const bidirectional_iterator& right);
-		T& operator*();
-		T* operator->();
-		bidirectional_iterator& operator++();
-		bidirectional_iterator operator++(int);
-		bidirectional_iterator& operator--();
-		bidirectional_iterator operator--(int);
-		bidirectional_iterator& operator=(const bidirectional_iterator& right);
+		// public methods
+		bool operator==(const bidirectional_iterator& right)
+		{
+			return this->ptr == right.ptr;
+		}
 
-		// constructors
-		bidirectional_iterator(const bidirectional_iterator& it);
-		bidirectional_iterator();
-		~bidirectional_iterator();
+		bool operator!=(const bidirectional_iterator& right)
+		{
+			return this->ptr != right.ptr;
+		}
+
+		reference operator*()
+		{
+			// return the node::_data member (not the node)
+			return this->ptr->_data;
+		}
+
+		pointer operator->()
+		{
+			// return the address of the node::_data member (not the address of the node)
+			return &this->ptr->_data;
+		}
+
+		bidirectional_iterator<is_const>& operator++() 
+		{
+			if (this->ptr)
+			{
+				this->ptr = this->ptr->_next;
+				return *this;
+			}
+			else
+			{
+				throw std::out_of_range("doubly-linked list");
+			}
+		}
+
+		bidirectional_iterator<is_const> operator++(int)
+		{
+			if (this->ptr)
+			{
+				bidirectional_iterator to_return(*this);
+				this->ptr = this->ptr->_next;
+				return to_return;
+			}
+			else
+			{
+				throw std::out_of_range("doubly-linked list");
+			}
+		}
+
+		bidirectional_iterator<is_const>& operator--()
+		{
+			if (this->ptr)
+			{
+				this->ptr = this->ptr->_previous;
+				return *this;
+			}
+			else
+			{
+				throw std::out_of_range("doubly-linked list");
+			}
+		}
+
+		bidirectional_iterator<is_const> operator--(int)
+		{
+			if (this->ptr)
+			{
+				bidirectional_iterator to_return(*this);
+				this->ptr = this->ptr->_previous;
+				return to_return;
+			}
+			else
+			{
+				throw std::out_of_range("doubly-linked list");
+			}
+		}
+
+		template<bool _is_const = is_const,
+			typename std::enable_if<_is_const, int>::type = 1>
+			bidirectional_iterator& operator=(const bidirectional_iterator<false>& right)
+		{
+			// specialized copy-assignment operator
+			this->ptr = right.ptr;
+			return *this;
+		}
+
+		template<bool _is_const = is_const,
+			typename std::enable_if<_is_const, int>::type = 1>
+			bidirectional_iterator& operator=(const bidirectional_iterator<false>&& right)
+		{
+			// specialized move assignment operator
+			this->ptr = right.ptr;
+			right.ptr = nullptr;
+			right = nullptr;
+			return *this;
+		}
+
+		bidirectional_iterator<is_const>& operator=(const bidirectional_iterator& right)
+		{
+			// general copy-assignment operator
+			this->ptr = right.ptr;
+			return *this;
+		}
+
+		bidirectional_iterator<is_const>& operator=(const bidirectional_iterator&& right)
+		{
+			// general move assignment operator
+			this->ptr = right.ptr;
+			right.ptr = nullptr;
+			right = nullptr;
+			return *this;
+		}
+
+		// constructors, destructor
+		bidirectional_iterator() noexcept : ptr{} {};
+		
+		template <bool _is_const = is_const,
+			typename std::enable_if<_is_const, int>::type = 1>
+		bidirectional_iterator(const bidirectional_iterator<false>& it)
+			: ptr(it.ptr)
+		{
+			// specialized constructor to allow a const_iterator to be initialized with an iterator
+		}
+
+		template <bool _is_const = is_const,
+			typename std::enable_if<_is_const, int>::type = 1>
+			bidirectional_iterator(const bidirectional_iterator<false>&& it)
+			: ptr(it.ptr)
+		{
+			// specialized move constructor for the same purpose
+			it.ptr = nullptr;
+			it = nullptr;
+		}
+
+		bidirectional_iterator(const bidirectional_iterator& it)
+			: ptr(it.ptr)
+		{
+			// general copy constructor
+		}
+
+		bidirectional_iterator(const bidirectional_iterator&& it)
+			: ptr(it.ptr)
+		{
+			// general move constructor
+			it.ptr = nullptr;
+			it = nullptr;
+		}
 	};
 
-	template<typename iter_type>
-	class reverse_list_iterator
+	template<bool is_const = false>
+	class reverse_list_iterator: public bidirectional_iterator<is_const>
 	{
-		iter_type* ptr;
-		reverse_list_iterator(iter_type* ptr);
+		node<value_type>* ptr;
+		reverse_list_iterator(node<value_type>* ptr)
+			: ptr(ptr)
+		{
+		}
 	public:
-		typedef typename iter_type::value_type value_type;
-		
-		reverse_list_iterator();
-		~reverse_list_iterator();
+		reverse_list_iterator()
+		{
+		}
+
+		~reverse_list_iterator()
+		{
+		}
 	};
 
 	// define our iterators
-	typedef bidirectional_iterator< node<T> > iterator;
-	typedef bidirectional_iterator< node<const T> > const_iterator;
-	typedef reverse_list_iterator< node<T> > reverse_iterator;
-	typedef reverse_list_iterator< node<cosnt T> > const_reverse_iterator;
+	typedef bidirectional_iterator<false> iterator;
+	typedef bidirectional_iterator<true> const_iterator;
+	typedef reverse_list_iterator<false> reverse_iterator;
+	typedef reverse_list_iterator<true> const_reverse_iterator;
 
 	// modifiers
 	void push_back(const T& val);
@@ -131,22 +284,95 @@ public:
 	void push_front(const T& val);
 	void pop_front();
 
-	void insert(const_iterator position, const T& val);
-	void insert(const_iterator position, size_t n, const T& val);
+	void insert(const_iterator position, const T& val)
+	{
+		// insert a single element at 'position', initializing with val
+		// this will move elements behind it back
+
+		// todo: allow move construction
+		auto new_element_pointer = std::allocator_traits<Allocator>::allocate(this->_allocator, 1);
+		std::allocator_traits<Allocator>::construct(this->_allocator, new_element_pointer, val);
+
+		// hold the element before 'position' temporarily so we don't lose it
+		auto previous_position = position.ptr->_previous;
+
+		/*
+
+		Update the relationships:
+			* the new element points to the element before 'position'
+			* the new element points to the element at 'position'
+			* the element before 'position' is the new element
+
+		*/
+
+		new_element_pointer->_previous = previous_position;
+		new_element_pointer->_next = position.ptr;
+		position.ptr->_previous = new_element_pointer;
+
+		return;
+	}
+
+	void insert(const_iterator position, size_t n, const T& val)
+	{
+		// fills the list with n elements (each initialized by val) at position
+
+		// todo: list fill
+
+		return;
+	}
 
 	template <typename InputIterator>
-	void insert(const_iterator position, InputIterator first, InputIterator last);
+	void insert(const_iterator position, InputIterator first, InputIterator last)
+	{
+		// insert elements by iterator from first to last at position
 
-	void insert(const_iterator position, T&& val);
-	void insert(const_iterator position, std::initializer_list<T> li);
+		// todo: iterator insertion
+
+		return;
+	}
+
+
+	void insert(const_iterator position, T&& val)
+	{
+		// move insertion
+
+		// todo: move insertion
+
+		return;
+	}
+
+	void insert(const_iterator position, std::initializer_list<T> li)
+	{
+		// insert by initializer list
+
+		// todo: initializer list insertion
+
+		return;
+	}
 
 	// todo: more methods should be supported
 
 	// iterators and accession
-	iterator begin() noexcept;
-	iterator end() noexcept;
-	const_iterator cbegin() const noexcept;
-	const_iterator cend() const noexcept;
+	
+	iterator begin() noexcept
+	{
+		return iterator(this->_head);
+	}
+
+	iterator end() noexcept
+	{
+		return iterator(nullptr);
+	}
+	
+	const_iterator cbegin() const noexcept
+	{
+		return const_iterator(this->_head);
+	}
+
+	const_iterator cend() const noexcept
+	{
+		return const_iterator(nullptr);
+	}
 
 	reverse_iterator rbegin() noexcept;
 	reverse_iterator rend() noexcept;
@@ -186,13 +412,6 @@ template <typename T, typename Allocator>
 const size_t doubly_linked_list<T, Allocator>::max_size() const noexcept
 {
 	return std::allocator_traits<Allocator>::max_size(this->_allocator);
-}
-
-template <typename T, typename Allocator>
-doubly_linked_list<T, Allocator>::allocator_type doubly_linked_list<T, Allocator>::get_allocator() const noexcept
-{
-	// return a copy of the allocator
-	return this->_allocator;
 }
 
 // operators
@@ -304,103 +523,7 @@ void doubly_linked_list<T, Allocator>::pop_front()
 	}
 }
 
-// insert method
-
-template <typename T, typename Allocator>
-void doubly_linked_list<T, Allocator>::insert(const_iterator position, const T& val)
-{
-	// insert a single element at 'position', initializing with val
-	// this will move elements behind it back
-
-	// todo: allow move construction
-	auto new_element_pointer = std::allocator_traits<Allocator>::allocate(this->_allocator, 1);
-	std::allocator_traits<Allocator>::construct(this->_allocator, new_element_pointer, val);
-
-	// hold the element before 'position' temporarily so we don't lose it
-	auto previous_position = position.ptr->_previous;
-
-	/*
-		
-	Update the relationships:
-		* the new element points to the element before 'position'
-		* the new element points to the element at 'position'
-		* the element before 'position' is the new element
-		
-	*/
-
-	new_element_pointer->_previous = previous_position;
-	new_element_pointer->_next = position.ptr;
-	position.ptr->_previous = new_element_pointer;
-
-	return;
-}
-
-template <typename T, typename Allocator>
-void doubly_linked_list<T, Allocator>::insert(const_iterator position, size_t n, const T& val)
-{
-	// fills the list with n elements (each initialized by val) at position
-
-	// todo: list fill
-
-	return;
-}
-
-template <typename T, typename Allocator>
-template <typename InputIterator>
-void doubly_linked_list<T, Allocator>::insert(const_iterator position, InputIterator first, InputIterator last)
-{
-	// insert elements by iterator from first to last at position
-		
-	// todo: iterator insertion
-
-	return;
-}
-
-template <typename T, typename Allocator>
-void doubly_linked_list<T, Allocator>::insert(const_iterator position, T&& val)
-{
-	// move insertion
-
-	// todo: move insertion
-
-	return;
-}
-
-template <typename T, typename Allocator>
-void doubly_linked_list<T, Allocator>::insert(const_iterator position, std::initializer_list<value_type> li)
-{
-	// insert by initializer list
-
-	// todo: initializer list insertion
-
-	return;
-}
-
 // iterators
-
-template <typename T, typename Allocator>
-doubly_linked_list<T, Allocator>::iterator doubly_linked_list<T, Allocator>::begin() noexcept
-{
-	return iterator(this->_head);
-}
-
-template <typename T, typename Allocator>
-doubly_linked_list<T, Allocator>::const_iterator doubly_linked_list<T, Allocator>::cbegin() const noexcept
-{
-	return const_iterator(this->_head);
-}
-
-template <typename T, typename Allocator>
-doubly_linked_list<T, Allocator>::iterator doubly_linked_list<T, Allocator>::end() noexcept
-{
-	return iterator(nullptr);
-}
-
-template <typename T, typename Allocator>
-doubly_linked_list<T, Allocator>::const_iterator doubly_linked_list<T, Allocator>::cend() const noexcept
-{
-	return const_iterator(nullptr);
-}
 
 // constructor, destructor
 
@@ -472,138 +595,4 @@ template <typename T, typename Allocator>
 doubly_linked_list<T, Allocator>::~doubly_linked_list()
 {
 	// walk through the list and call the destructor for every element
-}
-
-/*
-
-Forward iterator implementation
-
-*/
-
-// overload the operators
-template <typename T, typename Allocator>
-template<typename iter_type>
-bool doubly_linked_list<T, Allocator>::bidirectional_iterator<iter_type>::operator==(const bidirectional_iterator& right)
-{
-	return this->ptr == right.ptr;
-}
-
-template <typename T, typename Allocator>
-template<typename iter_type>
-bool  doubly_linked_list<T, Allocator>::bidirectional_iterator<iter_type>::operator!=(const bidirectional_iterator& right)
-{
-	return this->ptr != right.ptr;
-}
-
-template <typename T, typename Allocator>
-template<typename iter_type>
-T& doubly_linked_list<T, Allocator>::bidirectional_iterator<iter_type>::operator*()
-{
-	// return the node::_data member (not the node)
-	return this->ptr->_data;
-}
-
-template <typename T, typename Allocator>
-template<typename iter_type>
-T* doubly_linked_list<T, Allocator>::bidirectional_iterator<iter_type>::operator->()
-{
-	// return the address of the node::_data member (not the address of the node)
-	return &this->ptr->_data;
-}
-
-template <typename T, typename Allocator>
-template<typename iter_type>
-doubly_linked_list<T, Allocator>::bidirectional_iterator<iter_type>& doubly_linked_list<T, Allocator>::bidirectional_iterator<iter_type>::operator++()
-{
-	if (this->ptr)
-	{
-		this->ptr = this->ptr->_next;
-		return *this;
-	}
-	else
-	{
-		throw std::out_of_range("doubly-linked list");
-	}
-}
-
-template <typename T, typename Allocator>
-template<typename iter_type>
-doubly_linked_list<T, Allocator>::bidirectional_iterator<iter_type> doubly_linked_list<T, Allocator>::bidirectional_iterator<iter_type>::operator++(int)
-{
-	if (this->ptr)
-	{
-		bidirectional_iterator to_return(*this);
-		this->ptr = this->ptr->_next;
-		return to_return;
-	}
-	else
-	{
-		throw std::out_of_range("doubly-linked list");
-	}
-}
-
-template <typename T, typename Allocator>
-template<typename iter_type>
-doubly_linked_list<T, Allocator>::bidirectional_iterator<iter_type>& doubly_linked_list<T, Allocator>::bidirectional_iterator<iter_type>::operator--()
-{
-	if (this->ptr)
-	{
-		this->ptr = this->ptr->_previous;
-		return *this;
-	}
-	else
-	{
-		throw std::out_of_range("doubly-linked list");
-	}
-}
-
-template <typename T, typename Allocator>
-template<typename iter_type>
-doubly_linked_list<T, Allocator>::bidirectional_iterator<iter_type> doubly_linked_list<T, Allocator>::bidirectional_iterator<iter_type>::operator--(int)
-{
-	if (this->ptr)
-	{
-		bidirectional_iterator to_return(*this);
-		this->ptr = this->ptr->_previous;
-		return to_return;
-	}
-	else
-	{
-		throw std::out_of_range("doubly-linked list");
-	}
-}
-
-template <typename T, typename Allocator>
-template<typename iter_type>
-doubly_linked_list<T, Allocator>::bidirectional_iterator<iter_type>& doubly_linked_list<T, Allocator>::bidirectional_iterator<iter_type>::operator=(const bidirectional_iterator& right)
-{
-	this->ptr = right.ptr;
-	return *this;
-}
-
-// constructors
-
-template <typename T, typename Allocator>
-template<typename iter_type>
-doubly_linked_list<T, Allocator>::bidirectional_iterator<iter_type>::bidirectional_iterator(iter_type* ptr): ptr(ptr)
-{
-}
-
-template <typename T, typename Allocator>
-template<typename iter_type>
-doubly_linked_list<T, Allocator>::bidirectional_iterator<iter_type>::bidirectional_iterator(const bidirectional_iterator& it): ptr(it.ptr)
-{
-}
-
-template <typename T, typename Allocator>
-template<typename iter_type>
-doubly_linked_list<T, Allocator>::bidirectional_iterator<iter_type>::bidirectional_iterator()
-{
-	this->ptr = nullptr;
-}
-
-template <typename T, typename Allocator>
-template<typename iter_type>
-doubly_linked_list<T, Allocator>::bidirectional_iterator<iter_type>::~bidirectional_iterator()
-{
 }
