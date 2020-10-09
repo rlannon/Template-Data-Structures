@@ -12,12 +12,47 @@ Implementation of a doubly-linked list
 #include <iterator>
 #include <stdexcept>
 
-// forward-declaration of node
-// it is defined inside doubly_linked_list, but that class requires node<T> as a template parameter
 template <typename N>
-struct node;
+struct dll_node
+{
+	typedef N value_type;
+	typedef N* pointer;
+	typedef N& reference;
 
-template < typename T, typename Allocator = std::allocator< node<T> > >
+	N _data;
+	dll_node<N>* _next;
+	dll_node<N>* _previous;
+
+	dll_node& operator=(const dll_node& r)
+	{
+		this->_data = r._data;
+		this->_next = r._next;
+		this->_previous = r._previous;
+	}
+
+	dll_node(const N& data, dll_node<N>* prev, dll_node<N>* next)
+		: _data(data)
+		, _next(next)
+		, _previous(prev)
+	{
+	}
+
+	dll_node(const N& data)
+		: dll_node(data, nullptr, nullptr)
+	{
+	}
+
+	dll_node()
+		: dll_node(N(), nullptr, nullptr)
+	{
+	}
+
+	~dll_node()
+	{
+	}
+};
+
+template < typename T, typename Allocator = std::allocator< dll_node<T> > >
 class doubly_linked_list
 {
 	/*
@@ -30,58 +65,20 @@ class doubly_linked_list
 		* Allocator	-	The allocator to use; defaults to the STL's default allocator
 	
 	*/
-	
-	template <typename N>
-	struct node
-	{
-		typedef N value_type;
-		typedef N* pointer;
-		typedef N& reference;
-
-		N _data;
-		node<N>* _next;
-		node<N>* _previous;
-
-		node& operator=(const node& r)
-		{
-			this->_data = r._data;
-			this->_next = r._next;
-			this->_previous = r._previous;
-		}
-
-		node(const N& data, node<N>* prev, node<N>* next)
-			: _data(data)
-			, _next(next)
-			, _previous(prev)
-		{
-		}
-
-		node(const N& data) 
-			: node(data, nullptr, nullptr)
-		{
-		}
-
-		node()
-			: node( N(), nullptr, nullptr )
-		{
-		}
-
-		~node()
-		{
-		}
-	};
 
 	Allocator _allocator;
 
-	node<T>* _head;
-	node<T>* _tail;
+	dll_node<T>* _head;
+	dll_node<T>* _tail;
 
 	size_t _size;
 public:
-	typedef T value_type;
-	typedef T& reference;
-	typedef T* pointer;
-	typedef Allocator allocator_type;
+	using value_type = T;
+	using reference = T&;
+	using const_reference = const T&;
+	using pointer = T*;
+	using const_pointer = const T*;
+	using allocator_type = Allocator;
 
 	// capacity functions
 	const bool empty() const noexcept;
@@ -108,10 +105,10 @@ public:
 
 		friend class doubly_linked_list<T, Allocator>;
 		// pointer type
-		node<value_type>* ptr;
+		dll_node<value_type>* ptr;
 
 		// private constructor
-		bidirectional_iterator(node<value_type>* other)
+		bidirectional_iterator(dll_node<value_type>* other)
 			: ptr(other)
 		{
 		}
@@ -119,9 +116,9 @@ public:
 		// definitions
 		// utilize std::conditional in case we have a const type (so const_iterator is implemented properly)
 		using difference_type = std::ptrdiff_t;
-		using value_type = std::conditional< is_const, const T, T>;
-		using pointer = std::conditional< is_const, const value_type*, value_type*>;
-		using reference = std::conditional< is_const, const value_type&, value_type& >;
+		using value_type = typename std::conditional< is_const, const T, T>::type;
+		using pointer = T * ;
+		using reference = T & ;
 		using const_pointer = const T*;
 		using const_reference = const T&;
 		using iterator_category = std::bidirectional_iterator_tag;
@@ -282,8 +279,58 @@ public:
 	typedef std::reverse_iterator<bidirectional_iterator<true> > const_reverse_iterator;	// reverse iterators utilize std::reverse_iterator with our iterator as a template parameter
 
 	// modifiers
-	void push_back(const T& val);
-	void pop_back();
+	void push_back(const T& val)
+	{
+		auto loc = std::allocator_traits<Allocator>::allocate(this->_allocator, 1);
+		std::allocator_traits<Allocator>::construct(this->_allocator, loc, val);
+
+		if (this->empty())
+		{
+			this->_head = loc;
+		}
+		else if (this->_size == 1)
+		{
+			this->_tail = loc;
+			this->_tail->_previous = this->_head;
+			this->_head->_next = this->_tail;
+		}
+		else
+		{
+			this->_tail->_next = loc;
+			loc->_previous = this->_tail;
+			this->_tail = loc;
+		}
+
+		this->_size += 1;
+	}
+
+	void pop_back()
+	{
+		if (this->empty())
+		{
+			throw std::out_of_range("doubly-linked list");
+		}
+		else if (this->_size == 1)
+		{
+			// if the size is 1, our head node is the only one (tail is nullptr)
+			// as such, we should pop_front
+			this->pop_front();
+		}
+		else
+		{
+			// otherwise, we have a node at 'tail' we can pop
+			auto loc = this->_tail;
+			this->_tail = this->_tail->_previous;	// move the tail node back one
+			this->_tail->_next = nullptr;	// ensure nothing comes after it
+
+			// destroy and deallocate the node
+			std::allocator_traits<Allocator>::destroy(this->_allocator, loc);
+			std::allocator_traits<Allocator>::deallocate(this->_allocator, loc, 1);
+
+			this->_size -= 1;
+		}
+	}
+
 	void push_front(const T& val);
 	void pop_front();
 
@@ -412,12 +459,48 @@ public:
 		return const_iterator(nullptr);
 	}
 
-	reverse_iterator rbegin() noexcept;
-	reverse_iterator rend() noexcept;
-	const_reverse_iterator crbegin() const noexcept;
-	const_reverse_iterator crend() const noexcept;
+	reverse_iterator rbegin() noexcept
+	{
+		return reverse_iterator(bidirectional_iterator<false>(this->_tail));
+	}
 
-	T& front();
+	reverse_iterator rend() noexcept
+	{
+		return reverse_iterator(bidirectional_iterator<false>(nullptr));
+	}
+
+	const_reverse_iterator crbegin() const noexcept
+	{
+		return reverse_iterator(bidirectional_iterator<true>(this->_tail));
+	}
+
+	const_reverse_iterator crend() const noexcept
+	{
+		return reverse_iterator(bidirectional_iterator<true>(nullptr));
+	}
+
+	reference front()
+	{
+		if (this->_head)
+		{
+			return this->_tail->_data;
+		}
+		else {
+			throw std::out_of_range("doubly-linked list");
+		}
+	}
+
+	const_reference front() const
+	{
+		if (this->_tail)
+		{
+			return this->_tail->_data;
+		}
+		else {
+			throw std::out_of_range("doubly-linked list");
+		}
+	}
+
 	T& back();
 
 	// constructors and destructor
@@ -457,66 +540,10 @@ const size_t doubly_linked_list<T, Allocator>::max_size() const noexcept
 // todo: copy and move assignment operators; assign with initializer_list
 // todo: ensure allocator propagation is handled properly
 
-// container methods
-template <typename T, typename Allocator>
-void doubly_linked_list<T, Allocator>::push_back(const T& val)
-{
-doubly_linked_list<T, Allocator>::	// allocate and construct the node
-	node<T>* loc = std::allocator_traits<Allocator>::allocate(this->_allocator, 1);
-	std::allocator_traits<Allocator>::construct(this->_allocator, loc, val);
-		
-	if (this->empty())
-	{
-		this->_head = loc;
-	}
-	else if (this->_size == 1)
-	{
-		this->_tail = loc;
-		this->_tail->_previous = this->_head;
-		this->_head->_next = this->_tail;
-	}
-	else
-	{
-		this->_tail->_next = loc;
-		loc->_previous = this->_tail;
-		this->_tail = loc;
-	}
-
-	this->_size += 1;
-}
-
-template <typename T, typename Allocator>
-void doubly_linked_list<T, Allocator>::pop_back()
-{
-	if (this->empty())
-	{
-		throw std::out_of_range("doubly-linked list");
-	}
-	else if (this->_size == 1)
-	{
-		// if the size is 1, our head node is the only one (tail is nullptr)
-		// as such, we should pop_front
-		this->pop_front();
-	}
-	else
-	{
-		// otherwise, we have a node at 'tail' we can pop
-		node<T>* loc = this->_tail;
-		this->_tail = this->_tail->_previous;	// move the tail node back one
-		this->_tail->_next = nullptr;	// ensure nothing comes after it
-
-		// destroy and deallocate the node
-		std::allocator_traits<Allocator>::destroy(this->_allocator, loc);
-		std::allocator_traits<Allocator>::deallocate(this->_allocator, loc, 1);
-
-		this->_size -= 1;
-	}
-}
-
 template <typename T, typename Allocator>
 void doubly_linked_list<T, Allocator>::push_front(const T& val)
 {
-	node<T>* loc = std::allocator_traits<Allocator>::allocate(this->_allocator, 1);
+	auto loc = std::allocator_traits<Allocator>::allocate(this->_allocator, 1);
 	std::allocator_traits<Allocator>::construct(this->_allocator, loc, val);
 
 	if (this->empty())
@@ -543,7 +570,7 @@ void doubly_linked_list<T, Allocator>::pop_front()
 	else 
 	{
 		// reset the head node
-		node<T>* loc = this->_head;
+		auto loc = this->_head;
 			
 		// if we only have two nodes, we need to set the tail to nullptr so we don't have a node pointing to itself
 		if (this->_head->_next == this->_tail)
@@ -560,8 +587,6 @@ void doubly_linked_list<T, Allocator>::pop_front()
 		std::allocator_traits<Allocator>::deallocate(this->_allocator, loc, 1);
 	}
 }
-
-// iterators
 
 // constructors, destructor
 
@@ -595,7 +620,7 @@ doubly_linked_list<T, Allocator>::doubly_linked_list(size_t n, const Allocator& 
 	this->_tail = nullptr;
 	this->_size = 0;
 
-	node<T>* previous_pointer = nullptr;
+	dll_node<T>* previous_pointer = nullptr;
 
 	for (size_t i = 0; i < n; i++)
 	{
@@ -636,7 +661,7 @@ doubly_linked_list<T, Allocator>::doubly_linked_list(size_t n, const T& val, con
 	this->_tail = nullptr;
 	this->_size = 0;
 
-	node<T>* previous_pointer = nullptr;
+	dll_node<T>* previous_pointer = nullptr;
 
 	for (size_t i = 0; i < n; i++)
 	{
@@ -727,7 +752,7 @@ doubly_linked_list<T, Allocator>::doubly_linked_list(std::initializer_list<T> il
 	this->_tail = nullptr;
 	this->_size = 0;
 
-	node<T>* previous_pointer = nullptr;
+	dll_node<T>* previous_pointer = nullptr;
 
 	// iterate through the initializer list, allocating and constructing new elements for each
 	for (auto it = il.begin(); it != il.end(); it++)
@@ -770,8 +795,8 @@ doubly_linked_list<T, Allocator>::~doubly_linked_list()
 		auto next_pointer = current_pointer->_next;
 
 		// destroy and deallocate the current element
-		std::allocator_traits<Allocator>::destroy(this->_allocator, next_pointer);
-		std::allocator_traits<Allocator>::deallocate(this->_allocator, next_pointer, 1);
+		std::allocator_traits<Allocator>::destroy(this->_allocator, current_pointer);
+		std::allocator_traits<Allocator>::deallocate(this->_allocator, current_pointer, 1);
 
 		// update the current pointer and decrement the size
 		current_pointer = next_pointer;
