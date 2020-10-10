@@ -10,6 +10,7 @@ A custom double-ended queue implementation using templates and STL allocators
 #include <initializer_list>
 #include <memory>
 #include <stdexcept>
+#include <type_traits>
 
 // todo: reserve space on both ends so we don't have to move elements every single time we push or pop the front
 // this would require us to have some sort of limit on the amount of empty space we can have in the deque
@@ -107,20 +108,22 @@ public:
 	// this means these elements must exist in the container
 
 	// a random-access iterator
-	template <typename iter_type>
+	template <bool is_const = false>
 	class deque_iterator
 	{
-		iter_type *ptr;
+		pointer ptr;
 
-		deque_iterator(iter_type *p) {
+		deque_iterator(pointer p) {
 			this->ptr = p;
 		}
 	public:
-		typedef iter_type value_type;
-		typedef std::random_access_iterator_tag iterator_category;
-		typedef ptrdiff_t difference_type;
-		typedef iter_type* pointer;
-		typedef iter_type& reference;
+		using value_type = typename std::conditional<is_const, const T, T>::type;
+		using iterator_category = std::random_access_iterator_tag;
+		using difference_type = ptrdiff_t;
+		using pointer = value_type*;
+		using reference = value_type&;
+		using const_pointer = const T*;
+		using const_reference = const T&;
 
 		bool operator==(const deque_iterator& right) {
 			return this->ptr == right.ptr;
@@ -223,8 +226,26 @@ public:
 			return *this;
 		}
 
+		template <bool _is_const = is_const,
+			typename std::enable_if<_is_const, int>::value = 1>
 		deque_iterator& operator=(const deque_iterator& right) {
 			this->ptr = right.ptr;
+		}
+
+		template <bool _is_const = is_const,
+			typename std::enable_if<_is_const, int>::value = 1>
+		deque_iterator& operator=(const deque_iterator&& right) {
+			this->ptr = right.ptr;
+			right = nullptr;
+		}
+
+		deque_iterator& operator=(const deque_iterator& right) {
+			this->ptr = right.ptr;
+		}
+
+		deque_iterator& operator=(const deque_iterator&& right) {
+			this->ptr = right.ptr;
+			right = nullptr;
 		}
 
 		deque_iterator& operator[](const difference_type n) {
@@ -235,13 +256,33 @@ public:
 			this->ptr = nullptr;
 		}
 
-		deque_iterator(const deque_iterator& right) {
-			this->ptr = right.ptr;
+		template <bool _is_const = is_const,
+			typename std::enable_if<_is_const, int>::value = 1>
+		deque_iterator(const deque_iterator<false>& right)
+			: ptr(right.ptr) {}
+
+		template <bool _is_const = is_const,
+			typename std::enable_if<_is_const, int>::value = 1>
+		deque_iterator(const deque_iterator<false>&& right)
+			: ptr(right.ptr)
+		{
+			right = nullptr;
+		}
+
+		deque_iterator(const deque_iterator& right)
+			: ptr(right.ptr)
+		{
+		}
+
+		deque_iterator(const deque_iterator&& right)
+			: ptr(right.ptr)
+		{
+			right = nullptr;
 		}
 	};
 
-	typedef deque_iterator<T> iterator;
-	typedef deque_iterator<const T> const_iterator;
+	typedef deque_iterator<false> iterator;
+	typedef deque_iterator<true> const_iterator;
 
 	// overloaded operators
 

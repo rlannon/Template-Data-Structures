@@ -13,59 +13,59 @@ A node class for a linked list
 #include <exception>
 
 template<class T>
-class node
+class list_node
 {
 	T data;
-	node<T>* next;
+	list_node<T>* next;
 public:
 	T& get_data();
-	node<T>* get_next();
+	list_node<T>* get_next();
 
 	void set_data(T data);
-	void set_next(node<T>* next);
+	void set_next(list_node<T>* next);
 
-	node(T data, node<T>* next = nullptr);
-	node();
-	~node();
+	list_node(T data, list_node<T>* next = nullptr);
+	list_node();
+	~list_node();
 };
 
 template <typename T>
-inline void node<T>::set_data(T data)
+inline void list_node<T>::set_data(T data)
 {
 	this->data = data;
 }
 
 template <typename T>
-inline T& node<T>::get_data()
+inline T& list_node<T>::get_data()
 {
 	return this->data;
 }
 
 template <typename T>
-inline node<T>* node<T>::get_next()
+inline list_node<T>* list_node<T>::get_next()
 {
 	return this->next;
 }
 
 template <typename T>
-inline void node<T>::set_next(node<T>* next)
+inline void list_node<T>::set_next(list_node<T>* next)
 {
 	this->next = next;
 }
 
 template <typename T>
-node<T>::node(T data, node<T>* next)
+list_node<T>::list_node(T data, list_node<T>* next)
 {
 	this->data = data;
 	this->next = next;
 }
 
 template <typename T>
-node<T>::node()
+list_node<T>::list_node()
 {
 }
 
 template <typename T>
-node<T>::~node()
+list_node<T>::~list_node()
 {
 }

@@ -50,7 +50,7 @@ public:
 	// Define the iterator for our hash table
 	class iterator
 	{
-		node<entry>* ptr;
+		list_node<entry>* ptr;
 	public:
 		typedef entry value_type;
 		typedef std::forward_iterator_tag iterator_category;
@@ -60,12 +60,12 @@ public:
 
 		bool operator==(const iterator right);
 		bool operator!=(const iterator right);
-		node<entry>& operator*();
-		node<entry>* operator->();
+		list_node<entry>& operator*();
+		list_node<entry>* operator->();
 		iterator& operator++();
 		iterator operator++(int);
 
-		iterator(node<entry>& ptr);
+		iterator(list_node<entry>& ptr);
 		//iterator(typename linked_list<entry>::iterator it);
 		iterator();
 		~iterator();
@@ -148,13 +148,13 @@ typename hash_table<K, V, Hash, Allocator>::iterator hash_table<K, V, Hash, Allo
 }
 
 template <typename K, typename V, typename Hash, typename Allocator>
-node<typename hash_table<K, V, Hash, Allocator>::entry>& hash_table<K, V, Hash, Allocator>::iterator::operator*()
+list_node<typename hash_table<K, V, Hash, Allocator>::entry>& hash_table<K, V, Hash, Allocator>::iterator::operator*()
 {
 	return *this->ptr;
 }
 
 template <typename K, typename V, typename Hash, typename Allocator>
-node<typename hash_table<K, V, Hash, Allocator>::entry>* hash_table<K, V, Hash, Allocator>::iterator::operator->()
+list_node<typename hash_table<K, V, Hash, Allocator>::entry>* hash_table<K, V, Hash, Allocator>::iterator::operator->()
 {
 	return this->ptr;
 }
@@ -162,7 +162,7 @@ node<typename hash_table<K, V, Hash, Allocator>::entry>* hash_table<K, V, Hash, 
 // Constructors, destructor
 
 template <typename K, typename V, typename Hash, typename Allocator>
-hash_table<K, V, Hash, Allocator>::iterator::iterator(node<entry>& ptr)
+hash_table<K, V, Hash, Allocator>::iterator::iterator(list_node<entry>& ptr)
 {
 	this->ptr = &ptr;
 }
@@ -191,7 +191,7 @@ template <typename K, typename V, typename Hash, typename Allocator>
 typename hash_table<K, V, Hash, Allocator>::iterator hash_table<K, V, Hash, Allocator>::begin() const
 {
 	typename linked_list<entry>::iterator first_entry = this->buckets[0].begin();
-	node<entry> &first = *first_entry;
+	list_node<entry> &first = *first_entry;
 	return iterator(first);
 }
 
@@ -289,7 +289,7 @@ typename hash_table<K, V, Hash, Allocator>::entry& hash_table<K, V, Hash, Alloca
 		throw std::runtime_error("Duplicate key");
 
 		// return the value at the duplicate key on exception
-		node<entry>& to_return = *it;
+		list_node<entry>& to_return = *it;
 		return to_return.get_data();
 	}
 	else
@@ -299,7 +299,7 @@ typename hash_table<K, V, Hash, Allocator>::entry& hash_table<K, V, Hash, Alloca
 		this->_size += 1;	// we have one more entry in the table
 
 		// return a reference to the new entry
-		node<entry>& to_return = *this->buckets[index].back();
+		list_node<entry>& to_return = *this->buckets[index].back();
 		return to_return.get_data();
 	}
 }
